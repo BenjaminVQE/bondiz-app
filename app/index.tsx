@@ -1,6 +1,6 @@
+import { IMAGES } from "@/constants/Image";
 import React, { useEffect, useState } from "react";
 import { ActivityIndicator, Image, StyleSheet, Text, View } from "react-native";
-import { IMAGES } from "./constants/Image";
 
 export default function Index() {
   const [isLoading, setIsLoading] = useState(true);
@@ -18,13 +18,13 @@ export default function Index() {
       <View style={styles.loadingContainer}>
         <Image source={IMAGES.LOGO} style={styles.logo} resizeMode="contain" />
         <ActivityIndicator size="large" color="#0000ff" />
-        <Text style={styles.loadingText}>Initialisation de Bondiz...</Text>
       </View>
     );
   }
 
   return (
     <View style={styles.container}>
+      <Image source={IMAGES.LOGO} style={styles.logo} resizeMode="contain" />
       <Text style={{ marginTop: 10, color: "blue" }}>Se connecter</Text>
       <Text style={{ marginTop: 10, color: "blue" }}>S'inscrire</Text>
     </View>
