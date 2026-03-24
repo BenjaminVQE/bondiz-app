@@ -1,6 +1,8 @@
 import { IMAGES } from "@/constants/Image";
+import { globalStyles } from "@/constants/Styles";
 import React, { useEffect, useState } from "react";
-import { ActivityIndicator, Image, StyleSheet, Text, View } from "react-native";
+import { Image, StyleSheet, Text, View, TouchableOpacity } from "react-native";
+import LoadingSpinner from "./components/loading";
 
 export default function Index() {
   const [isLoading, setIsLoading] = useState(true);
@@ -15,43 +17,33 @@ export default function Index() {
 
   if (isLoading) {
     return (
-      <View style={styles.loadingContainer}>
+      <View style={[globalStyles.container, globalStyles.center]}>
         <Image source={IMAGES.LOGO} style={styles.logo} resizeMode="contain" />
-        <ActivityIndicator size="large" color="#0000ff" />
+        <LoadingSpinner />
       </View>
     );
   }
 
   return (
-    <View style={styles.container}>
+    <View style={[globalStyles.container, globalStyles.center]}>
       <Image source={IMAGES.LOGO} style={styles.logo} resizeMode="contain" />
-      <Text style={{ marginTop: 10, color: "blue" }}>Se connecter</Text>
-      <Text style={{ marginTop: 10, color: "blue" }}>S'inscrire</Text>
+      
+      <TouchableOpacity style={[globalStyles.ctaButton, { marginTop: 15 }]}>
+        <Text style={globalStyles.ctaText}>Se connecter</Text>
+      </TouchableOpacity>
+      
+      <TouchableOpacity style={[globalStyles.ctaButton, globalStyles.secondaryButton, { marginTop: 15 }]}>
+        <Text style={[globalStyles.ctaText, globalStyles.secondaryText]}>S'inscrire</Text>
+      </TouchableOpacity>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-  },
   logo: {
-    width: 150,
-    height: 150,
-    marginBottom: 20,
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "#ffffff",
-  },
-  loadingText: {
-    marginTop: 15,
-    fontSize: 16,
-    fontWeight: "500",
-    color: "#333",
+    width: 250,
+    height: 250,
+    marginBottom: 40,
   },
 });
+
