@@ -36,9 +36,9 @@ export default function LoginScreen() {
       setError(null);
       await login(email, password);
       // La navigation se fera probablement automatiquement via un state global ou manuellement ici
-      router.replace("/"); 
+      router.replace("/");
     } catch (err: any) {
-      setError(err.message || "Identifiants invalides");
+      setError(err.message || "Erreur de connexion");
     } finally {
       setIsSubmitting(false);
     }
@@ -46,10 +46,14 @@ export default function LoginScreen() {
 
   return (
     <KeyboardAvoidingView
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
       style={globalStyles.container}
     >
-      <ScrollView contentContainerStyle={styles.scrollContent}>
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
         <View style={styles.header}>
           <TouchableOpacity
             onPress={() => router.replace("/")}
@@ -66,7 +70,7 @@ export default function LoginScreen() {
 
         <View style={styles.form}>
           {error && <Text style={styles.errorText}>{error}</Text>}
-          
+
           <Input
             label="Email"
             placeholder="votre@email.com"
@@ -92,7 +96,7 @@ export default function LoginScreen() {
 
           <TouchableOpacity
             style={[
-              globalStyles.ctaButton, 
+              globalStyles.ctaButton,
               styles.loginButton,
               isSubmitting && { opacity: 0.7 }
             ]}

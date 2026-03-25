@@ -1,9 +1,11 @@
 import { COLORS } from "@/constants/Colors";
+import { IMAGES } from "@/constants/Image";
 import { globalStyles } from "@/constants/Styles";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
+  Image,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -42,7 +44,7 @@ export default function RegisterScreen() {
       await register(firstName, email, password);
       router.replace("/");
     } catch (err: any) {
-      setError(err.message || "Une erreur est survenue lors de l'inscription");
+      setError(err.message || "Erreur de connexion");
     } finally {
       setIsSubmitting(false);
     }
@@ -50,10 +52,14 @@ export default function RegisterScreen() {
 
   return (
     <KeyboardAvoidingView
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
       style={globalStyles.container}
     >
-      <ScrollView contentContainerStyle={styles.scrollContent}>
+      <ScrollView 
+        contentContainerStyle={styles.scrollContent}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
         <View style={styles.header}>
           <TouchableOpacity
             onPress={() => router.replace("/")}
@@ -64,6 +70,7 @@ export default function RegisterScreen() {
         </View>
 
         <View style={styles.titleContainer}>
+          <Image source={IMAGES.LOGO} style={styles.logo} resizeMode="contain" />
           <Text style={styles.title}>Créer un compte</Text>
           <Text style={styles.subtitle}>Rejoignez la communauté bondiz dès aujourd'hui</Text>
         </View>
@@ -153,18 +160,26 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   titleContainer: {
+    alignItems: "center",
     marginBottom: 30,
+  },
+  logo: {
+    width: 120,
+    height: 120,
+    marginBottom: 20,
   },
   title: {
     fontSize: 32,
     fontFamily: "Poppins_700Bold",
     color: COLORS.main,
+    textAlign: "center",
   },
   subtitle: {
     fontSize: 16,
     fontFamily: "Poppins_400Regular",
     color: "rgba(255, 255, 255, 0.7)",
     marginTop: 5,
+    textAlign: "center",
   },
   errorText: {
     color: "#ff4444",

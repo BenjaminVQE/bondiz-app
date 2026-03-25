@@ -11,6 +11,24 @@ export type StrapiError = {
   details: any;
 };
 
+const translateError = (message: string | undefined): string => {
+  if (!message) return "Une erreur inattendue est survenue.";
+
+  const lowerMessage = message.toLowerCase();
+
+  if (lowerMessage.includes("invalid identifier or password")) {
+    return "Adresse email ou mot de passe incorrect.";
+  }
+  if (lowerMessage.includes("email or username are already taken") || lowerMessage.includes("email is already taken")) {
+    return "Cette adresse email est déjà utilisée.";
+  }
+  if (lowerMessage.includes("username is already taken")) {
+    return "Ce nom d'utilisateur est déjà utilisé.";
+  }
+
+  return "Une erreur est survenue. Veuillez réessayer.";
+};
+
 export async function apiFetch<T>(
   endpoint: string,
   options: RequestInit = {},
@@ -23,29 +41,34 @@ export async function apiFetch<T>(
     ...(options.headers as Record<string, string> || {}),
   };
 
-
   const authToken = token || STRAPI_TOKEN;
   if (authToken) {
     headers["Authorization"] = `Bearer ${authToken}`;
   }
 
+  let response;
   try {
-    const response = await fetch(url, {
+    response = await fetch(url, {
       ...options,
       headers,
     });
-
-    const data = await response.json();
-
-    if (!response.ok) {
-      // Strapi renvoie les erreurs dans un format spécifique { error: StrapiError }
-      const error = data.error as StrapiError;
-      throw new Error(error?.message || "Une erreur est survenue");
-    }
-
-    return data as T;
   } catch (error: any) {
-    console.error(`API Error (${endpoint}):`, error);
-    throw error;
+    console.error(`Network Error (${endpoint}):`, error);
+    throw new Error("Impossible de se connecter au serveur. Vérifiez votre connexion internet.");
   }
+
+  let data;
+  try {
+    data = await response.json();
+  } catch (error: any) {
+    console.error(`Parse Error (${endpoint}):`, error);
+    throw new Error("Le serveur rencontre un problème. Veuillez réessayer plus tard.");
+  }
+
+  if (!response.ok) {
+    const error = data.error as StrapiError | undefined;
+    throw new Error(translateError(error?.message));
+  }
+
+  return data as T;
 }
