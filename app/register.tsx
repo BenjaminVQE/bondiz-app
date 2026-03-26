@@ -42,7 +42,7 @@ export default function RegisterScreen() {
       setIsSubmitting(true);
       setError(null);
       await register(firstName, email, password);
-      router.replace("/");
+      router.replace("/questionnaire");
     } catch (err: any) {
       setError(err.message || "Erreur de connexion");
     } finally {
