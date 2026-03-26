@@ -1,57 +1,56 @@
-import React, { useEffect, useState } from "react";
-import { ActivityIndicator, Image, StyleSheet, Text, View } from "react-native";
-import { IMAGES } from "./constants/Image";
+import { IMAGES } from "@/constants/Image";
+import { globalStyles } from "@/constants/Styles";
+import React from "react";
+import { Image, StyleSheet, Text, View, TouchableOpacity } from "react-native";
+import { useRouter } from "expo-router";
+import { useAuth } from "../context/AuthContext";
 
 export default function Index() {
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setIsLoading(false);
-    }, 3000); // 3 secondes de chargement
-
-    return () => clearTimeout(timer);
-  }, []);
-
-  if (isLoading) {
-    return (
-      <View style={styles.loadingContainer}>
-        <Image source={IMAGES.LOGO} style={styles.logo} resizeMode="contain" />
-        <ActivityIndicator size="large" color="#0000ff" />
-        <Text style={styles.loadingText}>Initialisation de Bondiz...</Text>
-      </View>
-    );
-  }
+  const router = useRouter();
+  const { user, logout } = useAuth();
 
   return (
-    <View style={styles.container}>
-      <Text style={{ marginTop: 10, color: "blue" }}>Se connecter</Text>
-      <Text style={{ marginTop: 10, color: "blue" }}>S'inscrire</Text>
+    <View style={[globalStyles.container, globalStyles.center]}>
+      <Image source={IMAGES.LOGO} style={styles.logo} resizeMode="contain" />
+      
+      {user ? (
+        <>
+          <Text style={[globalStyles.ctaText, { color: 'white', marginBottom: 20 }]}>
+            Bienvenue, {user.username} !
+          </Text>
+          <TouchableOpacity 
+            style={[globalStyles.ctaButton, { marginTop: 15 }]}
+            onPress={logout}
+          >
+            <Text style={globalStyles.ctaText}>Se déconnecter</Text>
+          </TouchableOpacity>
+        </>
+      ) : (
+        <>
+          <TouchableOpacity 
+            style={[globalStyles.ctaButton, { marginTop: 15 }]}
+            onPress={() => router.push("/login")}
+          >
+            <Text style={globalStyles.ctaText}>Se connecter</Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity 
+            style={[globalStyles.ctaButton, globalStyles.secondaryButton, { marginTop: 15 }]}
+            onPress={() => router.push("/register")}
+          >
+            <Text style={[globalStyles.ctaText, globalStyles.secondaryText]}>S'inscrire</Text>
+          </TouchableOpacity>
+        </>
+      )}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-  },
   logo: {
-    width: 150,
-    height: 150,
-    marginBottom: 20,
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "#ffffff",
-  },
-  loadingText: {
-    marginTop: 15,
-    fontSize: 16,
-    fontWeight: "500",
-    color: "#333",
+    width: 250,
+    height: 250,
+    marginBottom: 40,
   },
 });
+
