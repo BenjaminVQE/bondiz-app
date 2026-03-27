@@ -24,10 +24,9 @@ export default function RegisterScreen() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const handleRegister = async () => {
+  const handleRegister = () => {
     if (!firstName || !email || !password || !confirmPassword) {
       setError("Veuillez remplir tous les champs");
       return;
@@ -38,16 +37,11 @@ export default function RegisterScreen() {
       return;
     }
 
-    try {
-      setIsSubmitting(true);
-      setError(null);
-      await register(firstName, email, password);
-      router.replace("/questionnaire");
-    } catch (err: any) {
-      setError(err.message || "Erreur de connexion");
-    } finally {
-      setIsSubmitting(false);
-    }
+    // On ne crée pas encore le compte, on passe les données à l'étape suivante
+    router.push({
+      pathname: "/questionnaire",
+      params: { firstName, email, password }
+    });
   };
 
   return (
@@ -71,6 +65,12 @@ export default function RegisterScreen() {
 
         <View style={styles.titleContainer}>
           <Image source={IMAGES.LOGO} style={styles.logo} resizeMode="contain" />
+          
+          <View style={styles.progressBarContainer}>
+            <View style={[styles.progressBar, { width: "33.33%" }]} />
+          </View>
+
+          <Text style={styles.stepText}>Étape 1/3</Text>
           <Text style={styles.title}>Créer un compte</Text>
           <Text style={styles.subtitle}>Rejoignez la communauté bondiz dès aujourd'hui</Text>
         </View>
@@ -119,13 +119,11 @@ export default function RegisterScreen() {
             style={[
               globalStyles.ctaButton,
               styles.registerButton,
-              isSubmitting && { opacity: 0.7 }
             ]}
             onPress={handleRegister}
-            disabled={isSubmitting}
           >
             <Text style={globalStyles.ctaText}>
-              {isSubmitting ? "Inscription..." : "S'inscrire"}
+              Suivant
             </Text>
           </TouchableOpacity>
 
@@ -167,6 +165,26 @@ const styles = StyleSheet.create({
     width: 120,
     height: 120,
     marginBottom: 20,
+  },
+  progressBarContainer: {
+    width: "100%",
+    height: 6,
+    backgroundColor: "rgba(255, 255, 255, 0.1)",
+    borderRadius: 3,
+    marginBottom: 20,
+    overflow: "hidden",
+  },
+  progressBar: {
+    height: "100%",
+    backgroundColor: COLORS.cta,
+    borderRadius: 3,
+  },
+  stepText: {
+    color: COLORS.cta,
+    fontFamily: "Poppins_700Bold",
+    fontSize: 14,
+    textTransform: "uppercase",
+    marginBottom: 5,
   },
   title: {
     fontSize: 32,
