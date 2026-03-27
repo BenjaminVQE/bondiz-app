@@ -3,6 +3,7 @@ import { IMAGES } from "@/constants/Image";
 import { globalStyles } from "@/constants/Styles";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
+import * as ImagePicker from "expo-image-picker";
 import React from "react";
 import {
   Dimensions,
@@ -12,25 +13,164 @@ import {
   Text,
   TouchableOpacity,
   View,
+  ActivityIndicator
 } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth } from "../context/AuthContext";
+import { apiFetch, STRAPI_BASE_URL } from "../services/api";
 
 const { width } = Dimensions.get("window");
 
 export default function ProfileScreen() {
   const router = useRouter();
-  const { user, logout } = useAuth();
+  const { user, token } = useAuth();
   const insets = useSafeAreaInsets();
+  const [profileData, setProfileData] = React.useState<any>(null);
+  const [loading, setLoading] = React.useState(true);
+  const [reorderMode, setReorderMode] = React.useState(false);
+  const [orderedIds, setOrderedIds] = React.useState<number[]>([]);
 
-  // Mock data for display based on image
-  const stats = {
-    messages: 15,
-    matchs: 25,
-    activities: 22,
+  React.useEffect(() => {
+    if (user && token) {
+      fetchProfile();
+    }
+  }, [user, token]);
+
+  const fetchProfile = async () => {
+    try {
+      setLoading(true);
+      // On utilise /users/me?populate=* pour récupérer ses propres données avec les relations
+      const data = await apiFetch<any>(`/users/me?populate=*`, {}, token!);
+      setProfileData(data);
+    } catch (error) {
+      console.error("Failed to fetch profile data", error);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const placeholderPhotos = [1, 2, 3]; // Used for the photo grid
+  const handlePickImage = async () => {
+    // 1. Demander les permissions
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== "granted") {
+      alert("Désolé, nous avons besoin des permissions pour accéder à vos photos !");
+      return;
+    }
+
+    // 2. Lancer le picker
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ["images"],
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.8,
+    });
+
+    if (!result.canceled && result.assets && result.assets.length > 0) {
+      const selectedImage = result.assets[0];
+      await uploadImage(selectedImage.uri);
+    }
+  };
+
+  const uploadImage = async (uri: string) => {
+    try {
+      setLoading(true);
+      
+      // 1. Préparer le FormData pour Strapi
+      const formData = new FormData();
+      const fileName = uri.split("/").pop() || "profile_photo.jpg";
+      const match = /\.(\w+)$/.exec(fileName);
+      const type = match ? `image/${match[1]}` : `image`;
+
+      // @ts-ignore
+      formData.append("files", {
+        uri,
+        name: fileName,
+        type,
+      });
+
+      // 2. Envoyer à l'endpoint d'upload de Strapi
+      const uploadResponse = await apiFetch<any[]>("/upload", {
+        method: "POST",
+        body: formData,
+      }, token!);
+
+      if (uploadResponse && uploadResponse.length > 0) {
+        const newImageId = uploadResponse[0].id;
+        
+        // 3. Associer l'image à l'utilisateur (on ajoute aux photos existantes)
+        const currentImageIds = profileData?.self_image?.map((img: any) => img.id) || [];
+        await apiFetch(`/users/${user?.id}`, {
+          method: "PUT",
+          body: JSON.stringify({
+            self_image: [...currentImageIds, newImageId]
+          }),
+        }, token!);
+
+        // 4. Rafraîchir
+        await fetchProfile();
+      }
+    } catch (error) {
+      console.error("Failed to upload image", error);
+      alert("Erreur lors de l'envoi de l'image. Veuillez réessayer.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const movePhoto = (index: number, direction: "left" | "right") => {
+    const newIds = [...orderedIds];
+    const targetIndex = direction === "left" ? index - 1 : index + 1;
+    if (targetIndex < 0 || targetIndex >= newIds.length) return;
+    [newIds[index], newIds[targetIndex]] = [newIds[targetIndex], newIds[index]];
+    setOrderedIds(newIds);
+  };
+
+  const saveOrder = async () => {
+    setReorderMode(false);
+    try {
+      setLoading(true);
+      await apiFetch(`/users/${user?.id}`, {
+        method: "PUT",
+        body: JSON.stringify({ self_image: orderedIds }),
+      }, token!);
+      await fetchProfile();
+    } catch (error) {
+      console.error("Failed to save order", error);
+      alert("Erreur lors de la sauvegarde. Veuillez réessayer.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+
+  const stats = {
+    messages: 0, // Pas encore de champ messages dans Strapi
+    matchs: profileData?.matches?.length || 0,
+    activities: profileData?.activities?.length || 0,
+  };
+
+
+  // Build photos list respecting orderedIds if in reorder mode
+  const rawImages: any[] = profileData?.self_image || [];
+  const orderedImages = orderedIds.length > 0
+    ? orderedIds.map(id => rawImages.find((img: any) => img.id === id)).filter(Boolean)
+    : rawImages;
+
+  const photos = orderedImages.map((img: any) => {
+    const url = img.url || img.attributes?.url || img.data?.attributes?.url;
+    if (!url) return null;
+    return url.startsWith("http") ? url : `${STRAPI_BASE_URL}${url}`;
+  }).filter((url: string | null) => url !== null) || [];
+
+  const avatarUrl = photos.length > 0 ? photos[0] : null;
+
+  if (loading && !profileData) {
+    return (
+      <View style={[globalStyles.container, globalStyles.center]}>
+        <ActivityIndicator size="large" color={COLORS.cta} />
+      </View>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.container}>
@@ -45,12 +185,12 @@ export default function ProfileScreen() {
         <View style={styles.profileInfo}>
           <View style={styles.avatarContainer}>
             <Image
-              source={user?.image ? { uri: user.image } : require("../assets/images/placeholder_user.png")}
+              source={avatarUrl ? { uri: avatarUrl } : undefined}
               style={styles.avatar}
             />
           </View>
           <View style={styles.nameContainer}>
-            <Text style={styles.userName}>{user?.username || "null"}</Text>
+            <Text style={styles.userName}>{profileData?.username || user?.username || "Bondiz User"}</Text>
           </View>
         </View>
 
@@ -72,13 +212,21 @@ export default function ProfileScreen() {
 
         {/* Action Buttons */}
         <View style={styles.actionsContainer}>
-          <TouchableOpacity style={styles.actionButton}>
+          <TouchableOpacity
+            style={[styles.actionButton, reorderMode && { backgroundColor: COLORS.pink }]}
+            onPress={() => {
+              if (!reorderMode) {
+                setOrderedIds(rawImages.map((img: any) => img.id));
+              }
+              setReorderMode(!reorderMode);
+            }}
+          >
             <Ionicons name="pencil" size={24} color="white" />
           </TouchableOpacity>
-          <TouchableOpacity style={styles.actionButton}>
+          <TouchableOpacity style={styles.actionButton} onPress={handlePickImage}>
             <Ionicons name="image" size={24} color="white" />
           </TouchableOpacity>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.actionButton}
             onPress={() => router.push("/settings")}
           >
@@ -86,13 +234,51 @@ export default function ProfileScreen() {
           </TouchableOpacity>
         </View>
 
+        {/* Reorder mode bar */}
+        {reorderMode && (
+          <View style={styles.reorderBar}>
+            <Text style={styles.reorderHint}>Utilisez ← → pour réordonner vos photos</Text>
+            <View style={{ flexDirection: "row", gap: 10 }}>
+              <TouchableOpacity style={styles.cancelBtn} onPress={() => setReorderMode(false)}>
+                <Text style={{ color: COLORS.gray, fontFamily: "Poppins_700Bold", fontSize: 13 }}>Annuler</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.saveBtn} onPress={saveOrder}>
+                <Text style={{ color: "white", fontFamily: "Poppins_700Bold", fontSize: 13 }}>Sauvegarder</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
+
         {/* Photo Grid */}
         <View style={styles.photoGrid}>
-          {placeholderPhotos.map((item) => (
-            <View key={item} style={styles.photoContainer}>
-              <View style={styles.photoPlaceholder} />
+          {photos.map((item: string, index: number) => (
+            <View key={index} style={styles.photoContainer}>
+              <Image source={{ uri: item }} style={styles.photoPlaceholder} />
+              {reorderMode && (
+                <View style={styles.reorderOverlay}>
+                  <TouchableOpacity
+                    onPress={() => movePhoto(index, "left")}
+                    disabled={index === 0}
+                    style={[styles.arrowBtn, index === 0 && { opacity: 0.3 }]}
+                  >
+                    <Ionicons name="chevron-back" size={20} color="white" />
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    onPress={() => movePhoto(index, "right")}
+                    disabled={index === photos.length - 1}
+                    style={[styles.arrowBtn, index === photos.length - 1 && { opacity: 0.3 }]}
+                  >
+                    <Ionicons name="chevron-forward" size={20} color="white" />
+                  </TouchableOpacity>
+                </View>
+              )}
             </View>
           ))}
+          {photos.length === 0 && (
+            <Text style={{ textAlign: "center", color: COLORS.gray, width: "100%", marginTop: 20 }}>
+              Aucune photo pour le moment
+            </Text>
+          )}
         </View>
       </ScrollView>
 
@@ -213,10 +399,11 @@ const styles = StyleSheet.create({
   },
   photoGrid: {
     flexDirection: "row",
-    justifyContent: "space-between",
+    flexWrap: "wrap",
+    gap: 8,
   },
   photoContainer: {
-    width: (width - 70) / 3,
+    width: (width - 50 - 16) / 3,
     aspectRatio: 1,
   },
   photoPlaceholder: {
@@ -254,5 +441,51 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.2,
     shadowRadius: 2,
     elevation: 3,
+  },
+  reorderBar: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    backgroundColor: "#f5f5f5",
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    marginBottom: 16,
+  },
+  reorderHint: {
+    fontFamily: "Poppins_400Regular",
+    fontSize: 12,
+    color: COLORS.gray,
+    flexShrink: 1,
+    marginRight: 8,
+  },
+  cancelBtn: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+    backgroundColor: "#eee",
+  },
+  saveBtn: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+    backgroundColor: COLORS.purple,
+  },
+  reorderOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(0,0,0,0.4)",
+    borderRadius: 12,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: 6,
+  },
+  arrowBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: "rgba(255,255,255,0.25)",
+    justifyContent: "center",
+    alignItems: "center",
   },
 });

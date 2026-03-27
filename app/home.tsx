@@ -17,7 +17,7 @@ import {
 } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth } from "../context/AuthContext";
-import { apiFetch } from "../services/api";
+import { apiFetch, STRAPI_BASE_URL } from "../services/api";
 import { calculateAge } from "../utils/date";
 
 const { width, height } = Dimensions.get("window");
@@ -75,12 +75,26 @@ const HomeScreen = () => {
   const currentUser = users[currentIndex];
   const userAge = calculateAge(currentUser?.age);
 
+  const getUserImage = (user: any) => {
+    if (!user) return null;
+    let url = user.image;
+    // Si on a des photos dans self_image (le nouveau champ), on prend la première
+    if (user.self_image && user.self_image.length > 0) {
+      url = user.self_image[0].url || user.self_image[0].attributes?.url;
+    }
+    
+    if (!url) return null;
+    return url.startsWith("http") ? url : `${STRAPI_BASE_URL}${url}`;
+  };
+
+  const currentImage = getUserImage(currentUser);
+
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" />
       
       <Image
-        source={currentUser?.image ? { uri: currentUser.image } : require("../assets/images/placeholder_user.png")}
+        source={currentImage ? { uri: currentImage } : require("../assets/images/placeholder_user.png")}
         style={styles.backgroundImage}
       />
 
