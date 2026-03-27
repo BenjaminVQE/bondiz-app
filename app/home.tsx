@@ -8,7 +8,6 @@ import React, { useEffect, useState } from "react";
 import {
   Dimensions,
   Image,
-  SafeAreaView,
   StatusBar,
   StyleSheet,
   Text,
@@ -16,7 +15,7 @@ import {
   View,
   ActivityIndicator
 } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth } from "../context/AuthContext";
 import { apiFetch } from "../services/api";
 import { calculateAge } from "../utils/date";

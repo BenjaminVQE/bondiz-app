@@ -7,14 +7,13 @@ import React from "react";
 import {
   Dimensions,
   Image,
-  SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth } from "../context/AuthContext";
 
 const { width } = Dimensions.get("window");
@@ -51,23 +50,23 @@ export default function ProfileScreen() {
             />
           </View>
           <View style={styles.nameContainer}>
-            <Text style={styles.userName}>{user?.username || "Albert Deschamps"}</Text>
+            <Text style={styles.userName}>{user?.username || "null"}</Text>
           </View>
         </View>
 
         {/* Stats Row */}
         <View style={styles.statsContainer}>
           <View style={[styles.statBox, { backgroundColor: COLORS.pink }]}>
-            <Text style={styles.statNumber}>{stats.messages}</Text>
-            <Text style={styles.statLabel}>Messages</Text>
+            <Text style={[styles.statNumber, { color: "white" }]}>{stats.messages}</Text>
+            <Text style={[styles.statLabel, { color: "white" }]}>Messages</Text>
           </View>
           <View style={[styles.statBox, { backgroundColor: COLORS.cta }]}>
             <Text style={styles.statNumber}>{stats.matchs}</Text>
-            <Text style={styles.statLabel}>Matchs</Text>
+            <Text style={[styles.statLabel, { color: COLORS.black }]}>Matchs</Text>
           </View>
           <View style={[styles.statBox, { backgroundColor: COLORS.purple }]}>
-            <Text style={styles.statNumber}>{stats.activities}</Text>
-            <Text style={styles.statLabel}>Activités</Text>
+            <Text style={[styles.statNumber, { color: "white" }]}>{stats.activities}</Text>
+            <Text style={[styles.statLabel, { color: "white" }]}>Activités</Text>
           </View>
         </View>
 
