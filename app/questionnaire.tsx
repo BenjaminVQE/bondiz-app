@@ -366,7 +366,7 @@ const styles = StyleSheet.create({
     textTransform: "uppercase",
   },
   errorText: {
-    color: "#ff4444",
+    color: COLORS.error,
     fontFamily: "Poppins_400Regular",
     fontSize: 14,
     marginBottom: 15,
@@ -388,7 +388,7 @@ const styles = StyleSheet.create({
     width: 24,
     borderRadius: 12,
     borderWidth: 2,
-    borderColor: "#f98cd7",
+    borderColor: COLORS.pink,
     alignItems: "center",
     justifyContent: "center",
     marginRight: 15,
@@ -397,7 +397,7 @@ const styles = StyleSheet.create({
     height: 12,
     width: 12,
     borderRadius: 6,
-    backgroundColor: "#f98cd7",
+    backgroundColor: COLORS.pink,
   },
   radioLabel: {
     fontSize: 18,

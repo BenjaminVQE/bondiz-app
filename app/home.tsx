@@ -136,7 +136,7 @@ const HomeScreen = () => {
             </TouchableOpacity>
             <TouchableOpacity 
               style={[styles.navItem, { backgroundColor: COLORS.pink }]}
-              onPress={() => logout()}
+              onPress={() => router.replace("/profile")}
             >
               <Ionicons name="person-outline" size={28} color={COLORS.main} />
             </TouchableOpacity>
@@ -243,7 +243,7 @@ const styles = StyleSheet.create({
   },
   bottomNavBar: {
     flexDirection: "row",
-    backgroundColor: "#8432fe",
+    backgroundColor: COLORS.purple,
     borderRadius: 25,
     padding: 10,
     width: width * 0.9,

@@ -13,6 +13,7 @@ export type User = {
   gender?: string;
   city?: string;
   interests?: string[];
+  image?: string;
 };
 
 type AuthContextType = {
