@@ -9,7 +9,10 @@ export type User = {
   id: number;
   username: string;
   email: string;
-  // Ajoutez d'autres champs si nécessaire
+  age?: number | string;
+  gender?: string;
+  city?: string;
+  interests?: string[];
 };
 
 type AuthContextType = {
@@ -17,7 +20,8 @@ type AuthContextType = {
   token: string | null;
   isLoading: boolean;
   login: (email: string, password: string) => Promise<void>;
-  register: (username: string, email: string, password: string) => Promise<void>;
+  register: (username: string, email: string, password: string, additionalData?: Partial<User>) => Promise<void>;
+  updateUser: (data: Partial<User>) => Promise<void>;
   logout: () => Promise<void>;
 };
 
@@ -57,13 +61,42 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     await saveAuthData(data.jwt, data.user);
   }
 
-  async function register(username: string, email: string, password: string) {
+  async function register(username: string, email: string, password: string, additionalData?: Partial<User>) {
+    // Étape 1 : Création du compte (Strapi register n'accepte que username, email, password)
     const data = await apiFetch<{ jwt: string; user: User }>("/auth/local/register", {
       method: "POST",
       body: JSON.stringify({ username, email, password }),
     });
 
+    // On sauvegarde d'abord pour avoir le token et l'utilisateur en local
     await saveAuthData(data.jwt, data.user);
+
+    // Étape 2 : Si on a des données supplémentaires, on met à jour le profil (PUT /users/:id)
+    if (additionalData && Object.keys(additionalData).length > 0) {
+      try {
+        const updatedUser = await apiFetch<User>(`/users/${data.user.id}`, {
+          method: "PUT",
+          body: JSON.stringify(additionalData),
+        }, data.jwt);
+
+        await saveAuthData(data.jwt, updatedUser);
+      } catch (updateError) {
+        console.error("Failed to update user profile after registration", updateError);
+        // On ne bloque pas tout le processus car le compte est déjà créé
+        // Mais on pourrait vouloir informer l'utilisateur ou retenter plus tard
+      }
+    }
+  }
+
+  async function updateUser(data: Partial<User>) {
+    if (!user || !token) throw new Error("Utilisateur non connecté");
+
+    const updatedUser = await apiFetch<User>(`/users/${user.id}`, {
+      method: "PUT",
+      body: JSON.stringify(data),
+    }, token);
+
+    await saveAuthData(token, updatedUser);
   }
 
   async function logout() {
@@ -81,7 +114,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }
 
   return (
-    <AuthContext.Provider value={{ user, token, isLoading, login, register, logout }}>
+    <AuthContext.Provider value={{ user, token, isLoading, login, register, updateUser, logout }}>
       {children}
     </AuthContext.Provider>
   );
