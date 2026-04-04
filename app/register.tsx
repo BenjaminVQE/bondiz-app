@@ -200,7 +200,7 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
   errorText: {
-    color: "#ff4444",
+    color: COLORS.error,
     fontFamily: "Poppins_400Regular",
     fontSize: 14,
     marginBottom: 15,

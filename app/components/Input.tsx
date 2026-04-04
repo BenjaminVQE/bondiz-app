@@ -92,7 +92,7 @@ const styles = StyleSheet.create({
     borderColor: "rgba(255, 255, 255, 0.3)",
   },
   inputError: {
-    borderColor: "#ff4444",
+    borderColor: COLORS.error,
   },
   icon: {
     marginRight: 10,
@@ -107,7 +107,7 @@ const styles = StyleSheet.create({
     padding: 4,
   },
   errorText: {
-    color: "#ff4444",
+    color: COLORS.error,
     fontSize: 12,
     marginTop: 5,
     marginLeft: 5,

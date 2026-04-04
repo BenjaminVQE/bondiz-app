@@ -4,7 +4,7 @@ import { COLORS } from "./Colors";
 export const globalStyles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.background,
+    backgroundColor: COLORS.purple,
   },
   center: {
     justifyContent: "center",

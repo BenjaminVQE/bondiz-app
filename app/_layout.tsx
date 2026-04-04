@@ -52,7 +52,7 @@ export default function RootLayout() {
 
   return (
     <AuthProvider>
-      <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: COLORS.background } }} />
+      <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: COLORS.purple } }} />
     </AuthProvider>
   );
 }

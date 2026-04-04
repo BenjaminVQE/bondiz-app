@@ -173,7 +173,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   errorText: {
-    color: "#ff4444",
+    color: COLORS.error,
     fontFamily: "Poppins_400Regular",
     fontSize: 14,
     marginBottom: 15,

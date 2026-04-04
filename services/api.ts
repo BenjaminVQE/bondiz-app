@@ -1,7 +1,6 @@
 
-// URL de base pour Strapi. 
-// Note: Utiliser l'IP locale si vous testez sur un appareil physique (ex: http://192.168.1.XX:1337)
 export const STRAPI_URL = process.env.EXPO_PUBLIC_STRAPI_URL || "http://localhost:1337";
+export const STRAPI_BASE_URL = STRAPI_URL.replace(/\/api$/, "");
 export const STRAPI_TOKEN = process.env.EXPO_PUBLIC_STRAPI_TOKEN || "";
 
 export type StrapiError = {
@@ -36,8 +35,10 @@ export async function apiFetch<T>(
 ): Promise<T> {
   const url = `${STRAPI_URL}${endpoint}`;
 
+  const isFormData = options.body instanceof FormData;
+  
   const headers: Record<string, string> = {
-    "Content-Type": "application/json",
+    ...(!isFormData && { "Content-Type": "application/json" }),
     ...(options.headers as Record<string, string> || {}),
   };
 
