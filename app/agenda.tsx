@@ -117,7 +117,7 @@ export default function AgendaScreen() {
 
           return {
             id: booking.id,
-            title: actData.title || actData.attributes?.title || "Sans titre",
+            title: bData.activityName || actData.title || actData.attributes?.title || "Sans titre",
             description: actData.description || actData.attributes?.description || "",
             time: formattedTime,
             date: bData.date || actData.date,
@@ -206,8 +206,12 @@ export default function AgendaScreen() {
       </View>
 
       <View style={styles.labelsRow}>
-        <Text style={styles.label}>Heure</Text>
-        <Text style={styles.label}>Activité</Text>
+        <View style={{ width: 100, alignItems: "center" }}>
+          <Text style={styles.label}>Heure</Text>
+        </View>
+        <View style={{ flex: 1, marginLeft: 15, alignItems: "center" }}>
+          <Text style={styles.label}>Activité</Text>
+        </View>
       </View>
 
       {loading ? (
@@ -340,7 +344,7 @@ const styles = StyleSheet.create({
   },
   cardContainer: {
     flex: 1,
-    marginLeft: 0,
+    marginLeft: 15,
   },
   activityCard: {
     backgroundColor: "#FF85BC",
