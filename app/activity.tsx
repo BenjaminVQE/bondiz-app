@@ -18,50 +18,18 @@ import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context"
 import BottomNav from "./components/BottomNav";
 import DateTimePickerModal from "react-native-modal-datetime-picker";
 import { apiFetch, STRAPI_BASE_URL } from "../services/api";
+import { useRouter } from "expo-router";
 
 const { width, height } = Dimensions.get("window");
 
-// Mock data based on the screenshot
-const MOCK_ACTIVITIES = [
-  {
-    id: 1,
-    title: "La Flèche",
-    subtitle: "Super bar",
-    image: "https://images.unsplash.com/photo-1514362545857-3bc16c4c7d1b?w=400",
-    time: "08",
-    people: "02",
-    price: "15",
-    date: new Date().toISOString()
-  },
-  {
-    id: 2,
-    title: "Bowling",
-    subtitle: "Les Quilles",
-    image: "https://images.unsplash.com/photo-1544178170-79a7dc5f870a?w=400",
-    time: "85",
-    people: "05",
-    price: "18",
-    date: new Date().toISOString()
-  },
-  {
-    id: 3,
-    title: "Escalade",
-    subtitle: "Grimpe",
-    image: "https://images.unsplash.com/photo-1522163182402-834f871fd851?w=400",
-    time: "60",
-    people: "03",
-    price: "11",
-    date: new Date().toISOString()
-  }
-];
-
 export default function ActivityScreen() {
+  const router = useRouter();
   const insets = useSafeAreaInsets();
   const [search, setSearch] = useState("");
   const [isDatePickerVisible, setDatePickerVisibility] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
-  const [activities, setActivities] = useState<any[]>(MOCK_ACTIVITIES);
-  const [filteredActivities, setFilteredActivities] = useState<any[]>(MOCK_ACTIVITIES);
+  const [activities, setActivities] = useState<any[]>([]);
+  const [filteredActivities, setFilteredActivities] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -75,25 +43,32 @@ export default function ActivityScreen() {
   const fetchActivities = async () => {
     try {
       setLoading(true);
-      // Try to fetch from API, fall back to mock if it fails or returns empty
       const res = await apiFetch<any>("/activities?populate=*");
-      if (res.data && res.data.length > 0) {
-        const formatted = res.data.map((item: any) => ({
-          id: item.id,
-          title: item.attributes.name,
-          subtitle: item.attributes.description,
-          image: item.attributes.image?.data?.attributes?.url 
-            ? `${STRAPI_BASE_URL}${item.attributes.image.data.attributes.url}`
-            : "https://via.placeholder.com/150",
-          time: item.attributes.duration || "00",
-          people: item.attributes.capacity || "00",
-          price: item.attributes.price || "00",
-          date: item.attributes.date
-        }));
+      if (res.data) {
+        const formatted = res.data.map((item: any) => {
+          // Handle both Strapi v4 and flattened v5 data
+          const imageObj = item.image || item.attributes?.image?.data || item.attributes?.media?.data;
+          const imageUrl = imageObj?.url || imageObj?.attributes?.url || imageObj?.formats?.small?.url || imageObj?.formats?.thumbnail?.url;
+
+          const finalImageUrl = imageUrl 
+            ? (imageUrl.startsWith("http") ? imageUrl : `${STRAPI_BASE_URL}${imageUrl}`)
+            : null;
+
+          return {
+            id: item.id,
+            title: item.title || item.attributes?.title || "Activité",
+            subtitle: item.description || item.attributes?.description || "",
+            image: finalImageUrl,
+            location: item.location || item.attributes?.location || "Lieu non précisé",
+            participantsCount: (item.participants?.length || item.attributes?.participants?.data?.length || 0),
+            maxParticipants: item.maxParticipants || item.attributes?.maxParticipants || 0,
+            date: item.date || item.attributes?.date
+          };
+        });
         setActivities(formatted);
       }
     } catch (error) {
-      console.log("Using mock activities as API failed");
+      console.error("Activities API error:", error);
     } finally {
       setLoading(false);
     }
@@ -133,7 +108,11 @@ export default function ActivityScreen() {
   const ActivityCard = ({ item }: { item: any }) => (
     <View style={styles.card}>
       <View style={styles.imageOverlayContainer}>
-        <Image source={{ uri: item.image }} style={styles.cardImage} />
+        {item.image ? (
+          <Image source={{ uri: item.image }} style={styles.cardImage} />
+        ) : (
+          <View style={[styles.cardImage, { backgroundColor: COLORS.gray }]} />
+        )}
         <LinearGradient
           colors={["transparent", "rgba(0,0,0,0.4)"]}
           style={StyleSheet.absoluteFill}
@@ -149,15 +128,12 @@ export default function ActivityScreen() {
         <Text style={styles.cardSubtitle} numberOfLines={1}>{item.subtitle}</Text>
         <View style={styles.statsRow}>
           <View style={styles.stat}>
-            <Ionicons name="time-outline" size={16} color="white" />
-            <Text style={styles.statText}>{item.time}</Text>
+            <Ionicons name="location-outline" size={16} color="white" />
+            <Text style={styles.statText} numberOfLines={1}>{item.location}</Text>
           </View>
           <View style={styles.stat}>
             <Ionicons name="people-outline" size={16} color="white" />
-            <Text style={styles.statText}>{item.people}</Text>
-          </View>
-          <View style={styles.stat}>
-            <Text style={styles.statText}>€ {item.price}</Text>
+            <Text style={styles.statText}>{item.participantsCount}/{item.maxParticipants}</Text>
           </View>
         </View>
       </LinearGradient>
@@ -168,7 +144,11 @@ export default function ActivityScreen() {
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.title}>ACTIVITÉS</Text>
-        <TouchableOpacity style={styles.calendarButton} onPress={showDatePicker} activeOpacity={0.8}>
+        <TouchableOpacity 
+          style={styles.calendarButton} 
+          onPress={() => router.push("/agenda")} 
+          activeOpacity={0.8}
+        >
           <Ionicons name="calendar-outline" size={24} color="white" />
           {selectedDate && <View style={styles.dateDot} />}
         </TouchableOpacity>

@@ -52,7 +52,7 @@ const HomeScreen = () => {
   const fetchUsers = async () => {
     try {
       setLoading(true);
-      const usersData = await apiFetch<any[]>(`/users?populate[0]=self_image&populate[1]=activities`);
+      const usersData = await apiFetch<any[]>(`/users?populate[0]=self_image`);
       const filtered = (usersData || []).filter((u: any) => u.id !== user?.id);
       setUsers(filtered);
 
