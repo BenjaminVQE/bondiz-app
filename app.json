@@ -40,7 +40,13 @@
         }
       ],
       "expo-secure-store",
-      "@react-native-community/datetimepicker"
+      "@react-native-community/datetimepicker",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "L'application accède à vos photos pour vous permettre de les partager avec vos amis."
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,

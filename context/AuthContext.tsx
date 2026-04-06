@@ -17,7 +17,8 @@ export type User = {
   bio?: string;
   self_image?: any[];
   activities?: any[];
-  matches?: any[];
+  matches2?: any[];
+  like_user?: any[];
 };
 
 type AuthContextType = {
