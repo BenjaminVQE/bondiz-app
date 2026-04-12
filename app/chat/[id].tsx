@@ -136,13 +136,19 @@ const ChatScreen = () => {
       const dateStr = bookingDate.toISOString().split("T")[0];
       const timeStr = time.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: false });
 
+      // In Strapi 5 (Document Service), use documentId (string) for relations if possible.
+      // If not available, use the numeric ID.
+      const activityId = selectedActivity.documentId || selectedActivity.id;
+      const organizerId = user?.documentId || user?.id; // user from AuthContext
+      const participantId = otherUser.documentId || otherUser.id || otherUser.attributes?.id;
+
       await apiFetch("/bookings", {
         method: "POST",
         body: JSON.stringify({
           data: {
-            activity: { connect: [selectedActivity.id] },
-            organizer: { connect: [user?.id] },
-            participants: { connect: [otherUser.id] },
+            activity: activityId,
+            organizer: organizerId,
+            participants: [participantId],
             date: dateStr,
             time: timeStr,
             state: "pending"
