@@ -231,7 +231,7 @@ export default function ProfileScreen() {
         <View style={styles.statsContainer}>
           <View style={[styles.statBox, { backgroundColor: COLORS.pink }]}>
             <Text style={styles.statNumber}>{stats.likes}</Text>
-            <Text style={styles.statLabel}>Amis</Text>
+            <Text style={styles.statLabel}>Likes</Text>
           </View>
           <View style={[styles.statBox, { backgroundColor: COLORS.cta }]}>
             <Text style={[styles.statNumber, { color: COLORS.black }]}>{stats.matchs}</Text>

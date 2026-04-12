@@ -50,7 +50,7 @@ const BottomNav = ({ currentRoute }: BottomNavProps) => {
           onPress={() => router.replace("/messages")}
         >
           <Ionicons 
-            name={currentRoute === "messages" ? "chatbubbles" : "chatbubbles-outline"} 
+            name={currentRoute === "messages" ? "chatbubble" : "chatbubble-outline"} 
             size={28} 
             color={currentRoute === "messages" ? COLORS.black : COLORS.main} 
           />

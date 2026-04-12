@@ -139,16 +139,8 @@ const HomeScreen = () => {
       const hasReciprocal = reciprocalLikes.data && reciprocalLikes.data.length > 0;
 
       if (hasReciprocal) {
-        await apiFetch("/matches", {
-          method: "POST",
-          body: JSON.stringify({
-            data: {
-              user1: user.id,
-              user2: targetUserId
-            }
-          })
-        });
-
+        // Match creation is now handled automatically by the backend lifecycle hook!
+        // We just need to show the notification
         const targetUser = users.find(u => u.id === targetUserId);
         
         setMatchInfo({

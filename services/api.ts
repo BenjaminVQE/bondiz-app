@@ -69,7 +69,8 @@ export async function apiFetch<T>(
   if (!response.ok) {
     console.error(`API Error (${endpoint}):`, JSON.stringify(data, null, 2));
     const error = data.error as StrapiError | undefined;
-    throw new Error(translateError(error?.message));
+    const translatedMsg = translateError(error?.message);
+    throw new Error(`${response.status}: ${translatedMsg}`);
   }
 
   return data as T;

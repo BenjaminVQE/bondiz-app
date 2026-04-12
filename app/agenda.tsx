@@ -76,18 +76,10 @@ export default function AgendaScreen() {
       );
       
       if (res.data) {
-        if (res.data.length > 0) {
-          console.log("DEBUG - First Booking found:", JSON.stringify(res.data[0], null, 2));
-        }
-        
         const mappedActivities = res.data.map((booking: any) => {
           const bData = booking.attributes || booking;
           // In Strapi v5 flattened, activity might be directly bData.activity
           const actObj = bData.activity?.data || bData.activity;
-          
-          if (!actObj) {
-            console.log(`Booking ${booking.id} is missing activity data. Keys present:`, Object.keys(bData));
-          }
           
           const actData = actObj?.attributes || actObj || {};
           
