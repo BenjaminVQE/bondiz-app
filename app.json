@@ -1,23 +1,24 @@
 {
   "expo": {
-    "name": "bondiz-app",
+    "name": "Bondiz",
     "slug": "bondiz-app",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/logo_purple.png",
+    "icon": "./assets/images/logo_app.png",
     "scheme": "bondizapp",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.bondiz.bondizapp"
+      "bundleIdentifier": "com.bondiz.bondizapp",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
-        "foregroundImage": "./assets/images/logo_purple.png",
-        "backgroundImage": "./assets/images/logo_purple.png",
-        "monochromeImage": "./assets/images/logo_purple.png"
+        "backgroundColor": "#FFFFFF",
+        "foregroundImage": "./assets/images/logo_app.png"
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
@@ -28,14 +29,14 @@
     },
     "web": {
       "output": "static",
-      "favicon": "./assets/images/logo_purple.png"
+      "favicon": "./assets/images/logo_app.png"
     },
     "plugins": [
       "expo-router",
       [
         "expo-splash-screen",
         {
-          "image": "./assets/images/logo_purple.png",
+          "image": "./assets/images/logo_app.png",
           "imageWidth": 200,
           "resizeMode": "contain",
           "backgroundColor": "#ffffff",
