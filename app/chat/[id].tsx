@@ -3,39 +3,39 @@ import { useAuth } from "@/context/AuthContext";
 import { apiFetch, STRAPI_BASE_URL } from "@/services/api";
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
   Image,
+  Keyboard,
   KeyboardAvoidingView,
+  Modal,
   Platform,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
-  View,
-  Keyboard,
-  Modal,
-  ScrollView
+  View
 } from "react-native";
+import DateTimePickerModal from "react-native-modal-datetime-picker";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import BottomNav from "../components/BottomNav";
-import DateTimePickerModal from "react-native-modal-datetime-picker";
 
 const ChatScreen = () => {
   const router = useRouter();
   const { id } = useLocalSearchParams(); // matchId
   const { user, token } = useAuth();
   const insets = useSafeAreaInsets();
-  
+
   const [messages, setMessages] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [messageText, setMessageText] = useState("");
   const [matchInfo, setMatchInfo] = useState<any>(null);
   const [otherUser, setOtherUser] = useState<any>(null);
   const [keyboardVisible, setKeyboardVisible] = useState(false);
-  
+
   // Event Creation States
   const [activities, setActivities] = useState<any[]>([]);
   const [showEventModal, setShowEventModal] = useState(false);
@@ -57,13 +57,13 @@ const ChatScreen = () => {
         {},
         token
       );
-      
+
       let other = null;
       if (matchRes.data && matchRes.data.length > 0) {
         const matchData = matchRes.data[0];
         const mData = matchData.attributes || matchData;
         setMatchInfo(mData);
-        
+
         const u1 = mData.user1?.data || mData.user1;
         const u2 = mData.user2?.data || mData.user2;
 
@@ -81,7 +81,7 @@ const ChatScreen = () => {
           {},
           token
         );
-        
+
         if (msgRes.data) {
           setMessages(msgRes.data);
         }
@@ -113,7 +113,7 @@ const ChatScreen = () => {
   useEffect(() => {
     fetchData();
     fetchActivities();
-    const interval = setInterval(fetchData, 4000); 
+    const interval = setInterval(fetchData, 4000);
     return () => clearInterval(interval);
   }, [id]);
 
@@ -159,7 +159,7 @@ const ChatScreen = () => {
       setShowEventModal(false);
       setSelectedActivity(null);
       setBookingDate(null);
-      
+
       await apiFetch("/messages", {
         method: "POST",
         body: JSON.stringify({
@@ -171,7 +171,7 @@ const ChatScreen = () => {
           }
         })
       }, token);
-      
+
       fetchData();
     } catch (error) {
       console.error("Create booking error:", error);
@@ -182,7 +182,7 @@ const ChatScreen = () => {
 
   const sendMessage = async () => {
     if (!messageText.trim() || !otherUser || !token) return;
-    
+
     const tempText = messageText;
     setMessageText("");
 
@@ -203,7 +203,7 @@ const ChatScreen = () => {
         },
         token
       );
-      fetchData(); 
+      fetchData();
     } catch (error) {
       console.error("Send message error:", error);
     }
@@ -211,24 +211,24 @@ const ChatScreen = () => {
 
   const getAvatarUrl = (userData: any) => {
     const data = userData?.attributes || userData;
-    const imgUrl = data?.self_image?.url || 
-                   data?.self_image?.data?.attributes?.url || 
-                   data?.self_image?.[0]?.url ||
-                   data?.self_image?.data?.[0]?.url;
+    const imgUrl = data?.self_image?.url ||
+      data?.self_image?.data?.attributes?.url ||
+      data?.self_image?.[0]?.url ||
+      data?.self_image?.data?.[0]?.url;
     return imgUrl ? `${STRAPI_BASE_URL}${imgUrl}` : `https://i.pravatar.cc/150?u=${userData?.id}`;
   };
 
   const renderMessage = ({ item }: { item: any }) => {
     const mData = item.attributes || item;
     const isMe = (mData.sender?.data?.id || mData.sender?.id) === user?.id;
-    
+
     return (
       <View style={[
-        styles.messageContainer, 
+        styles.messageContainer,
         isMe ? styles.myMessageContainer : styles.theirMessageContainer
       ]}>
         <View style={[
-          styles.messageBubble, 
+          styles.messageBubble,
           isMe ? styles.myBubble : styles.theirBubble
         ]}>
           <Text style={styles.messageText}>{mData.content}</Text>
@@ -254,7 +254,7 @@ const ChatScreen = () => {
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
           <Ionicons name="chevron-back" size={30} color="black" />
         </TouchableOpacity>
-        
+
         <View style={styles.userInfo}>
           <Image source={{ uri: getAvatarUrl(otherUser) }} style={styles.headerAvatar} />
           <Text style={styles.headerName}>{otherUser?.username || "..."}</Text>
@@ -278,8 +278,8 @@ const ChatScreen = () => {
         />
 
         <View style={[styles.inputRow, { paddingBottom: keyboardVisible ? 20 : 70 + insets.bottom }]}>
-          <TouchableOpacity 
-            style={styles.addButton} 
+          <TouchableOpacity
+            style={styles.addButton}
             onPress={() => setShowEventModal(true)}
           >
             <Ionicons name="add-circle" size={32} color={COLORS.purple} />
@@ -312,63 +312,76 @@ const ChatScreen = () => {
               </TouchableOpacity>
             </View>
 
-            <Text style={styles.modalSubtitle}>1. Choisissez une activité</Text>
-            <ScrollView 
-              horizontal 
-              showsHorizontalScrollIndicator={false}
-              style={styles.activitiesList}
-              contentContainerStyle={styles.activitiesContent}
-            >
-              {activities.map((activity: any) => {
-                const data = activity.attributes || activity;
-                const isSelected = selectedActivity?.id === activity.id;
-                return (
-                  <TouchableOpacity 
-                    key={activity.id} 
-                    style={[styles.activityItem, isSelected && styles.selectedActivityItem]}
-                    onPress={() => setSelectedActivity(activity)}
-                  >
-                    <Text style={[styles.activityItemText, isSelected && styles.selectedActivityText]}>
-                      {data.title}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </ScrollView>
+            <View style={styles.comingSoonContainer}>
+              <Ionicons name="sparkles-outline" size={60} color={COLORS.purple} />
+              <Text style={styles.comingSoonTitle}>Bientôt disponible !</Text>
+              <Text style={styles.comingSoonText}>
+                La planification d'événements avec vos partenaires Bondiz arrive très prochainement.
+              </Text>
+            </View>
 
-            {selectedActivity && (
+            {/* Event Creation Logic preserved but hidden for now */}
+            {false && (
               <>
-                <Text style={styles.modalSubtitle}>2. Date et Heure</Text>
-                <View style={styles.dateTimeRow}>
-                  <TouchableOpacity style={styles.dateTimeButton} onPress={() => setShowDatePicker(true)}>
-                    <Ionicons name="calendar-outline" size={20} color={COLORS.purple} />
-                    <Text style={styles.dateTimeButtonText}>
-                      {bookingDate ? bookingDate.toLocaleDateString() : "Choisir une date"}
-                    </Text>
-                  </TouchableOpacity>
+                <Text style={styles.modalSubtitle}>1. Choisissez une activité</Text>
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  style={styles.activitiesList}
+                  contentContainerStyle={styles.activitiesContent}
+                >
+                  {activities.map((activity: any) => {
+                    const data = activity.attributes || activity;
+                    const isSelected = selectedActivity?.id === activity.id;
+                    return (
+                      <TouchableOpacity
+                        key={activity.id}
+                        style={[styles.activityItem, isSelected && styles.selectedActivityItem]}
+                        onPress={() => setSelectedActivity(activity)}
+                      >
+                        <Text style={[styles.activityItemText, isSelected && styles.selectedActivityText]}>
+                          {data.title}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </ScrollView>
 
-                  <TouchableOpacity 
-                    style={[styles.dateTimeButton, !bookingDate && { opacity: 0.5 }]} 
-                    onPress={() => bookingDate && setShowTimePicker(true)}
-                    disabled={!bookingDate}
-                  >
-                    <Ionicons name="time-outline" size={20} color={COLORS.purple} />
-                    <Text style={styles.dateTimeButtonText}>Choisir l'heure</Text>
-                  </TouchableOpacity>
-                </View>
+                {selectedActivity && (
+                  <>
+                    <Text style={styles.modalSubtitle}>2. Date et Heure</Text>
+                    <View style={styles.dateTimeRow}>
+                      <TouchableOpacity style={styles.dateTimeButton} onPress={() => setShowDatePicker(true)}>
+                        <Ionicons name="calendar-outline" size={20} color={COLORS.purple} />
+                        <Text style={styles.dateTimeButtonText}>
+                          {bookingDate ? bookingDate.toLocaleDateString() : "Choisir une date"}
+                        </Text>
+                      </TouchableOpacity>
 
-                {bookingDate && (
-                  <TouchableOpacity 
-                    style={styles.createButton} 
-                    onPress={() => setShowTimePicker(true)}
-                    disabled={isCreatingEvent}
-                  >
-                    {isCreatingEvent ? (
-                      <ActivityIndicator color="white" />
-                    ) : (
-                      <Text style={styles.createButtonText}>Confirmer l'invitation</Text>
+                      <TouchableOpacity
+                        style={[styles.dateTimeButton, !bookingDate && { opacity: 0.5 }]}
+                        onPress={() => bookingDate && setShowTimePicker(true)}
+                        disabled={!bookingDate}
+                      >
+                        <Ionicons name="time-outline" size={20} color={COLORS.purple} />
+                        <Text style={styles.dateTimeButtonText}>Choisir l'heure</Text>
+                      </TouchableOpacity>
+                    </View>
+
+                    {bookingDate && (
+                      <TouchableOpacity
+                        style={styles.createButton}
+                        onPress={() => setShowTimePicker(true)}
+                        disabled={isCreatingEvent}
+                      >
+                        {isCreatingEvent ? (
+                          <ActivityIndicator color="white" />
+                        ) : (
+                          <Text style={styles.createButtonText}>Confirmer l'invitation</Text>
+                        )}
+                      </TouchableOpacity>
                     )}
-                  </TouchableOpacity>
+                  </>
                 )}
               </>
             )}
@@ -454,7 +467,7 @@ const styles = StyleSheet.create({
     maxWidth: "80%",
   },
   myBubble: {
-    backgroundColor: "#A970FF", 
+    backgroundColor: "#A970FF",
   },
   theirBubble: {
     backgroundColor: COLORS.purple,
@@ -589,6 +602,38 @@ const styles = StyleSheet.create({
     elevation: 5,
   },
   createButtonText: {
+    fontSize: 16,
+    fontFamily: "Poppins_700Bold",
+  },
+  comingSoonContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingVertical: 40,
+  },
+  comingSoonTitle: {
+    fontSize: 24,
+    fontFamily: "Poppins_700Bold",
+    color: "black",
+    marginTop: 20,
+    textAlign: "center",
+  },
+  comingSoonText: {
+    fontSize: 16,
+    fontFamily: "Poppins_400Regular",
+    color: "#666",
+    textAlign: "center",
+    marginTop: 10,
+    lineHeight: 24,
+  },
+  comingSoonButton: {
+    backgroundColor: COLORS.purple,
+    paddingHorizontal: 30,
+    paddingVertical: 15,
+    borderRadius: 25,
+    marginTop: 30,
+  },
+  comingSoonButtonText: {
     color: "white",
     fontSize: 16,
     fontFamily: "Poppins_700Bold",
