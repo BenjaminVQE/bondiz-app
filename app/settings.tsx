@@ -1,15 +1,14 @@
 import { COLORS } from "@/constants/Colors";
-import { globalStyles } from "@/constants/Styles";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React from "react";
 import {
   ScrollView,
+  StatusBar,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
-  StatusBar,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useAuth } from "../context/AuthContext";
@@ -30,7 +29,7 @@ export default function SettingsScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" />
-      
+
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
           <Ionicons name="chevron-back" size={28} color={COLORS.black} />
@@ -66,7 +65,7 @@ export default function SettingsScreen() {
               <Text style={styles.bulletText}>Droit à la portabilité</Text>
             </View>
             <Text style={styles.cardFooter}>
-              Pour toute demande, contactez notre délégué à la protection des données : privacy@bondiz.app
+              Pour toute demande, contactez notre délégué à la protection des données : bondizmydsu@gmail.com
             </Text>
           </View>
         </View>
