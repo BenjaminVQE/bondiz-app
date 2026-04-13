@@ -3,6 +3,7 @@ import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { useEffect, useState } from "react";
 import { View, Image, StyleSheet } from "react-native";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 import {
   Poppins_400Regular,
   Poppins_500Medium,
@@ -52,7 +53,9 @@ export default function RootLayout() {
 
   return (
     <AuthProvider>
-      <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: COLORS.purple } }} />
+      <GestureHandlerRootView style={{ flex: 1 }}>
+        <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: COLORS.purple } }} />
+      </GestureHandlerRootView>
     </AuthProvider>
   );
 }
