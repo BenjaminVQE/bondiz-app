@@ -13,7 +13,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 const { width } = Dimensions.get("window");
 
 interface BottomNavProps {
-  currentRoute: "home" | "messages" | "profile" | "activity";
+  currentRoute: "home" | "messages" | "profile" | "activity" | "agenda";
 }
 
 const BottomNav = ({ currentRoute }: BottomNavProps) => {

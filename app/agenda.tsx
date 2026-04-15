@@ -1,11 +1,13 @@
 import { COLORS } from "@/constants/Colors";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import React, { useState, useEffect, useRef } from "react";
 import {
   Dimensions,
   FlatList,
   Image,
+  Modal,
   ScrollView,
   StyleSheet,
   Text,
@@ -16,6 +18,7 @@ import {
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { apiFetch, STRAPI_BASE_URL } from "../services/api";
 import { useAuth } from "../context/AuthContext";
+import BottomNav from "./components/BottomNav";
 
 const { width } = Dimensions.get("window");
 
@@ -46,6 +49,7 @@ export default function AgendaScreen() {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [activities, setActivities] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
+  const [selectedActivity, setSelectedActivity] = useState<any>(null);
   const dateList = getDates();
   const scrollRef = useRef<ScrollView>(null);
 
@@ -107,15 +111,25 @@ export default function AgendaScreen() {
           const rawTime = bData.time || "10:00";
           const formattedTime = rawTime.includes(":") ? rawTime.split(":").slice(0, 2).join(":") : rawTime;
 
+          // Get activity image
+          const imageObj = actData.image || actData.attributes?.image?.data || actData.attributes?.media?.data;
+          const imageUrl = imageObj?.url || imageObj?.attributes?.url || imageObj?.formats?.small?.url || imageObj?.formats?.thumbnail?.url;
+          const finalImageUrl = imageUrl 
+            ? (imageUrl.startsWith("http") ? imageUrl : `${STRAPI_BASE_URL}${imageUrl}`)
+            : null;
+
           return {
             id: booking.id,
             title: bData.activityName || actData.title || actData.attributes?.title || "Sans titre",
             description: actData.description || actData.attributes?.description || "",
+            image: finalImageUrl,
+            location: actData.location || actData.attributes?.location || "Lieu non précisé",
             time: formattedTime,
             date: bData.date || actData.date,
             isOrganizer,
             isParticipant: !isOrganizer,
             avatars,
+            participantsCount: participantsList.length,
             bookingState: bData.state
           };
         }).filter(Boolean);
@@ -145,10 +159,14 @@ export default function AgendaScreen() {
         </View>
       </View>
 
-      <View style={styles.cardContainer}>
+      <TouchableOpacity 
+        style={styles.cardContainer}
+        onPress={() => setSelectedActivity(item)}
+        activeOpacity={0.9}
+      >
         <View style={styles.activityCard}>
-          <Text style={styles.activityTitle}>{item.title}</Text>
-          <Text style={styles.activitySubtitle}>{item.description}</Text>
+          <Text style={styles.activityTitle} numberOfLines={1}>{item.title}</Text>
+          <Text style={styles.activitySubtitle} numberOfLines={2}>{item.description}</Text>
           
           <View style={styles.avatarRow}>
             {(item.avatars || []).map((uri: string, idx: number) => (
@@ -160,8 +178,69 @@ export default function AgendaScreen() {
             <MaterialCommunityIcons name="star-four-points" size={45} color="#D4FF00" style={styles.cardStarTop} />
           )}
         </View>
-      </View>
+      </TouchableOpacity>
     </View>
+  );
+
+  const ActivityDetailModal = () => (
+    <Modal
+      visible={!!selectedActivity}
+      transparent
+      animationType="slide"
+      onRequestClose={() => setSelectedActivity(null)}
+    >
+      <View style={styles.modalOverlay}>
+        <View style={styles.modalContent}>
+          <ScrollView showsVerticalScrollIndicator={false}>
+            <View style={styles.modalImageContainer}>
+              {selectedActivity?.image ? (
+                <Image source={{ uri: selectedActivity.image }} style={styles.modalImage} />
+              ) : (
+                <View style={[styles.modalImage, { backgroundColor: COLORS.gray }]} />
+              )}
+              <TouchableOpacity 
+                style={styles.closeButton} 
+                onPress={() => setSelectedActivity(null)}
+              >
+                <Ionicons name="close" size={28} color="white" />
+              </TouchableOpacity>
+              <LinearGradient
+                colors={["transparent", "rgba(0,0,0,0.7)"]}
+                style={styles.modalImageGradient}
+              />
+            </View>
+
+            <View style={styles.modalInfo}>
+              <Text style={styles.modalTitle}>{selectedActivity?.title}</Text>
+              
+              <View style={styles.modalLocationContainer}>
+                <Ionicons name="location" size={20} color={COLORS.pink} />
+                <Text style={styles.modalLocation}>{selectedActivity?.location}</Text>
+              </View>
+
+              <View style={styles.modalDivider} />
+
+              <Text style={styles.modalDescriptionTitle}>À propos</Text>
+              <Text style={styles.modalDescription}>{selectedActivity?.description}</Text>
+              
+              <View style={styles.modalStatsRow}>
+                <View style={styles.modalStat}>
+                  <Ionicons name="people" size={24} color={COLORS.pink} />
+                  <Text style={styles.modalStatText}>{selectedActivity?.participantsCount} participants</Text>
+                </View>
+              </View>
+            </View>
+          </ScrollView>
+          
+          <TouchableOpacity 
+            style={styles.modalFooterButton}
+            onPress={() => setSelectedActivity(null)}
+          >
+            <Text style={styles.modalFooterButtonText}>RETOURNER</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    </Modal>
   );
 
   return (
@@ -219,6 +298,8 @@ export default function AgendaScreen() {
           }
         />
       )}
+      <BottomNav currentRoute="agenda" />
+      <ActivityDetailModal />
     </SafeAreaView>
   );
 }
@@ -391,5 +472,120 @@ const styles = StyleSheet.create({
     fontFamily: "Poppins_400Regular",
     color: "#999",
     marginTop: 50,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.7)",
+    justifyContent: "flex-end",
+  },
+  modalContent: {
+    backgroundColor: "white",
+    borderTopLeftRadius: 30,
+    borderTopRightRadius: 30,
+    height: "90%",
+    paddingBottom: 20,
+    overflow: "hidden",
+  },
+  modalImageContainer: {
+    width: "100%",
+    height: 350,
+  },
+  modalImage: {
+    width: "100%",
+    height: "100%",
+    resizeMode: "cover",
+  },
+  closeButton: {
+    position: "absolute",
+    top: 20,
+    right: 20,
+    zIndex: 10,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: "rgba(0,0,0,0.3)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  modalImageGradient: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 100,
+  },
+  modalInfo: {
+    padding: 25,
+  },
+  modalTitle: {
+    fontSize: 28,
+    fontFamily: "Poppins_700Bold",
+    color: "black",
+    marginBottom: 10,
+  },
+  modalLocationContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 20,
+  },
+  modalLocation: {
+    fontSize: 16,
+    fontFamily: "Poppins_500Medium",
+    color: "#666",
+    marginLeft: 8,
+  },
+  modalDivider: {
+    height: 1,
+    backgroundColor: "#EEE",
+    marginBottom: 20,
+  },
+  modalDescriptionTitle: {
+    fontSize: 20,
+    fontFamily: "Poppins_700Bold",
+    color: "black",
+    marginBottom: 10,
+  },
+  modalDescription: {
+    fontSize: 16,
+    fontFamily: "Poppins_400Regular",
+    color: "#444",
+    lineHeight: 24,
+    marginBottom: 25,
+  },
+  modalStatsRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#F8F8F8",
+    padding: 20,
+    borderRadius: 20,
+  },
+  modalStat: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  modalStatText: {
+    fontSize: 18,
+    fontFamily: "Poppins_700Bold",
+    color: "black",
+  },
+  modalFooterButton: {
+    marginHorizontal: 25,
+    height: 60,
+    backgroundColor: COLORS.pink,
+    borderRadius: 18,
+    justifyContent: "center",
+    alignItems: "center",
+    elevation: 5,
+    shadowColor: COLORS.pink,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 10,
+  },
+  modalFooterButtonText: {
+    color: "white",
+    fontSize: 18,
+    fontFamily: "Poppins_700Bold",
+    letterSpacing: 1,
   }
 });
