@@ -188,6 +188,7 @@ const HomeScreen = () => {
         snapToInterval={height}
         snapToAlignment="start"
         decelerationRate="fast"
+        disableIntervalMomentum={true}
         getItemLayout={(_, index) => ({
           length: height,
           offset: height * index,
@@ -333,6 +334,8 @@ const UserCard = ({
                 onStartShouldSetResponderCapture={() => true}
                 onTouchStart={() => setMainScrollEnabled(false)}
                 onTouchEnd={() => setMainScrollEnabled(true)}
+                onTouchCancel={() => setMainScrollEnabled(true)}
+                onScrollEndDrag={() => setMainScrollEnabled(true)}
                 onMomentumScrollEnd={() => setMainScrollEnabled(true)}
               >
                 <Text style={styles.userBio}>
