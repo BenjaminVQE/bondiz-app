@@ -12,9 +12,11 @@ import {
   Text,
   TouchableOpacity,
   View,
+  Alert,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import DateTimePickerModal from "react-native-modal-datetime-picker";
+import * as ImagePicker from "expo-image-picker";
 import { useAuth } from "../context/AuthContext";
 import Input from "./components/Input";
 
@@ -52,6 +54,7 @@ export default function QuestionnaireScreen() {
   const [city, setCity] = useState("");
   const [selectedInterests, setSelectedInterests] = useState<string[]>([]);
   const [expandedCategories, setExpandedCategories] = useState<string[]>([INTERESTS_CATEGORIES[0].title]);
+  const [profileImage, setProfileImage] = useState<string | null>(null);
   
   const [isDatePickerVisible, setDatePickerVisibility] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -71,6 +74,18 @@ export default function QuestionnaireScreen() {
   };
 
   const handleConfirmDate = (date: Date) => {
+    const today = new Date();
+    const minBirthdate = new Date(
+      today.getFullYear() - 18,
+      today.getMonth(),
+      today.getDate()
+    );
+    if (date > minBirthdate) {
+      setError("Vous devez avoir au moins 18 ans pour vous inscrire.");
+      hideDatePicker();
+      return;
+    }
+    setError(null);
     setBirthdate(date);
     hideDatePicker();
   };
@@ -96,16 +111,37 @@ export default function QuestionnaireScreen() {
     return date.toLocaleDateString("fr-FR");
   };
 
+  const pickImage = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Permission requise', 'Nous avons besoin d\'accéder à vos photos pour ajouter une photo de profil.');
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.8,
+    });
+
+    if (!result.canceled) {
+      setProfileImage(result.assets[0].uri);
+      setError(null);
+    }
+  };
+
   const handleNext = () => {
     if (currentStep === 1) {
       if (!selectedGender || !birthdate) return;
+      setError(null);
       setCurrentStep(2);
     }
   };
 
   const handleConfirm = async () => {
-    if (!city || selectedInterests.length < 5) {
-      setError("Veuillez renseigner votre ville et choisir au moins 5 intérêts.");
+    if (!profileImage || !city || selectedInterests.length < 5) {
+      setError("Veuillez ajouter une photo, renseigner votre ville, et choisir au moins 5 intérêts.");
       return;
     }
 
@@ -127,7 +163,7 @@ export default function QuestionnaireScreen() {
         age: formattedDate,
         city,
         interests: selectedInterests,
-      });
+      }, profileImage);
       
       router.replace("/");
     } catch (err: any) {
@@ -211,9 +247,28 @@ export default function QuestionnaireScreen() {
           <>
             <Text style={styles.stepText}>Étape 3/3</Text>
             <Text style={styles.title}>Dites-nous en plus</Text>
-            <Text style={styles.stepTitle}>Où habitez-vous ?</Text>
 
             {error && <Text style={styles.errorText}>{error}</Text>}
+
+            <View style={styles.imagePickerContainer}>
+              <TouchableOpacity onPress={pickImage} style={styles.imagePickerButton} activeOpacity={0.8}>
+                {profileImage ? (
+                  <View>
+                    <Image source={{ uri: profileImage }} style={styles.profilePhoto} />
+                    <View style={styles.addPhotoIconContainer}>
+                      <Ionicons name="pencil" size={16} color="white" />
+                    </View>
+                  </View>
+                ) : (
+                  <View style={styles.imagePickerPreview}>
+                    <Ionicons name="camera" size={40} color={COLORS.pink} />
+                    <Text style={styles.imagePickerText}>Ajouter une photo</Text>
+                  </View>
+                )}
+              </TouchableOpacity>
+            </View>
+
+            <Text style={styles.stepTitle}>Où habitez-vous ?</Text>
 
             <View style={styles.inputContainer}>
               <Input
@@ -291,10 +346,10 @@ export default function QuestionnaireScreen() {
                 style={[
                   globalStyles.ctaButton,
                   styles.confirmButtonStep2,
-                  (!city || selectedInterests.length < 5 || isSubmitting) && { opacity: 0.5 },
+                  (!profileImage || !city || selectedInterests.length < 5 || isSubmitting) && { opacity: 0.5 },
                 ]}
                 onPress={handleConfirm}
-                disabled={!city || selectedInterests.length < 5 || isSubmitting}
+                disabled={!profileImage || !city || selectedInterests.length < 5 || isSubmitting}
               >
                 <Text style={globalStyles.ctaText}>
                   {isSubmitting ? "Chargement..." : "Confirmer"}
@@ -312,7 +367,11 @@ export default function QuestionnaireScreen() {
           confirmTextIOS="Confirmer"
           cancelTextIOS="Annuler"
           locale="fr-FR"
-          maximumDate={new Date()}
+          maximumDate={(() => {
+            const d = new Date();
+            d.setFullYear(d.getFullYear() - 18);
+            return d;
+          })()}
         />
       </ScrollView>
     </KeyboardAvoidingView>
@@ -526,5 +585,49 @@ const styles = StyleSheet.create({
     height: 55,
     borderRadius: 15,
     marginLeft: 10,
+  },
+  imagePickerContainer: {
+    alignItems: "center",
+    marginBottom: 30,
+  },
+  imagePickerButton: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "rgba(255, 255, 255, 0.1)",
+    borderWidth: 2,
+    borderColor: "rgba(255, 255, 255, 0.3)",
+    borderStyle: "dashed",
+  },
+  imagePickerPreview: {
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  profilePhoto: {
+    width: 116,
+    height: 116,
+    borderRadius: 58,
+  },
+  addPhotoIconContainer: {
+    position: "absolute",
+    bottom: 0,
+    right: 0,
+    backgroundColor: COLORS.cta,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 2,
+    borderColor: COLORS.black,
+  },
+  imagePickerText: {
+    color: "rgba(255, 255, 255, 0.7)",
+    fontFamily: "Poppins_400Regular",
+    fontSize: 12,
+    marginTop: 5,
+    textAlign: "center",
   },
 });

@@ -37,6 +37,11 @@ export default function RegisterScreen() {
       return;
     }
 
+    if (password.length < 8) {
+      setError("Le mot de passe doit contenir au minimum 8 caractères");
+      return;
+    }
+
     // On ne crée pas encore le compte, on passe les données à l'étape suivante
     router.push({
       pathname: "/questionnaire",
@@ -105,6 +110,7 @@ export default function RegisterScreen() {
             secureTextEntry
             icon="lock-closed-outline"
           />
+          <Text style={styles.passwordHint}>Minimum 8 caractères</Text>
 
           <Input
             label="Confirmer le mot de passe"
@@ -229,5 +235,13 @@ const styles = StyleSheet.create({
     color: COLORS.cta,
     fontFamily: "Poppins_700Bold",
     fontSize: 14,
+  },
+  passwordHint: {
+    color: "rgba(255, 255, 255, 0.5)",
+    fontFamily: "Poppins_400Regular",
+    fontSize: 12,
+    marginTop: -10,
+    marginBottom: 15,
+    paddingLeft: 5,
   },
 });

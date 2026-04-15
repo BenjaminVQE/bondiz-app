@@ -26,7 +26,7 @@ type AuthContextType = {
   token: string | null;
   isLoading: boolean;
   login: (email: string, password: string) => Promise<void>;
-  register: (username: string, email: string, password: string, additionalData?: Partial<User>) => Promise<void>;
+  register: (username: string, email: string, password: string, additionalData?: Partial<User>, imageUri?: string) => Promise<void>;
   updateUser: (data: Partial<User>) => Promise<void>;
   logout: () => Promise<void>;
 };
@@ -67,7 +67,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     await saveAuthData(data.jwt, data.user);
   }
 
-  async function register(username: string, email: string, password: string, additionalData?: Partial<User>) {
+  async function register(username: string, email: string, password: string, additionalData?: Partial<User>, imageUri?: string) {
     // Étape 1 : Création du compte (Strapi register n'accepte que username, email, password)
     const data = await apiFetch<{ jwt: string; user: User }>("/auth/local/register", {
       method: "POST",
@@ -75,22 +75,54 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
 
     // On sauvegarde d'abord pour avoir le token et l'utilisateur en local
-    await saveAuthData(data.jwt, data.user);
+    let currentUser = data.user;
+    await saveAuthData(data.jwt, currentUser);
 
-    // Étape 2 : Si on a des données supplémentaires, on met à jour le profil (PUT /users/:id)
+    // Étape 2 : Si une photo est fournie, on l'upload et on lie à l'utilisateur
+    if (imageUri) {
+      try {
+        const formData = new FormData();
+        const filename = imageUri.split('/').pop() || 'profile.jpg';
+        const match = /\.(\w+)$/.exec(filename);
+        const type = match ? `image/${match[1]}` : `image`;
+
+        formData.append("files", {
+          uri: imageUri,
+          name: filename,
+          type,
+        } as any);
+        formData.append("ref", "plugin::users-permissions.user");
+        formData.append("refId", currentUser.id.toString());
+        formData.append("field", "self_image");
+
+        await apiFetch("/upload", {
+          method: "POST",
+          body: formData,
+        }, data.jwt);
+      } catch (e) {
+        console.error("Image upload error", e);
+      }
+    }
+
+    // Étape 3 : Si on a des données supplémentaires, on met à jour le profil (PUT /users/:id)
     if (additionalData && Object.keys(additionalData).length > 0) {
       try {
-        const updatedUser = await apiFetch<User>(`/users/${data.user.id}`, {
+        const updatedUser = await apiFetch<User>(`/users/${currentUser.id}?populate[0]=self_image`, {
           method: "PUT",
           body: JSON.stringify(additionalData),
         }, data.jwt);
 
         await saveAuthData(data.jwt, updatedUser);
+        currentUser = updatedUser;
       } catch (updateError) {
         console.error("Failed to update user profile after registration", updateError);
-        // On ne bloque pas tout le processus car le compte est déjà créé
-        // Mais on pourrait vouloir informer l'utilisateur ou retenter plus tard
       }
+    } else if (imageUri) {
+       // Fetch user again to get the populated self_image if no additionalData was sent
+      try {
+        const updatedUser = await apiFetch<User>(`/users/${currentUser.id}?populate[0]=self_image`, {}, data.jwt);
+        await saveAuthData(data.jwt, updatedUser);
+      } catch (e) {}
     }
   }
 
