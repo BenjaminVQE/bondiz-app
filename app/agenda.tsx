@@ -74,7 +74,7 @@ export default function AgendaScreen() {
       // Fetch bookings with simplified population for activity to troubleshoot missing field
       // Using populate=* for the first level and specifically nested for images
       const res = await apiFetch<any>(
-        `/bookings?filters[$or][0][user][id][$eq]=${user.id}&filters[$or][1][organizer][id][$eq]=${user.id}&filters[$or][2][participants][id][$eq]=${user.id}&populate=*&populate[activity]=*&populate[participants][populate]=self_image&populate[organizer][populate]=self_image`, 
+        `/bookings?filters[$or][0][organizer][id][$eq]=${user.id}&filters[$or][1][participants][id][$eq]=${user.id}&populate=*&populate[activity]=*&populate[participants][populate]=self_image&populate[organizer][populate]=self_image`, 
         {}, 
         token!
       );

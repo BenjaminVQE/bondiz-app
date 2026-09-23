@@ -30,80 +30,30 @@ const MessagesScreen = () => {
       if (!isRefresh) setLoading(true);
       else setRefreshing(true);
       
-      // 1. Fetch Matches
-      const matchesRes = await apiFetch<any>(
-        `/matches?filters[$or][0][user1][id][$eq]=${user.id}&filters[$or][1][user2][id][$eq]=${user.id}&populate[user1][populate]=self_image&populate[user2][populate]=self_image&publicationState=live`,
-        {},
-        token
-      );
+      // Le backend renvoie déjà les conversations triées, avec le dernier
+      // message et le nombre de messages non lus.
+      const res = await apiFetch<any>(`/conversations?pageSize=50`, {}, token);
 
-      // 2. Fetch Messages
-      const messagesRes = await apiFetch<any>(
-        `/messages?filters[$or][0][sender][id][$eq]=${user.id}&filters[$or][1][recipient][id][$eq]=${user.id}&populate=*&sort=createdAt:desc&publicationState=live`,
-        {},
-        token
-      );
+      const mapped = (res.data || []).map((conv: any) => {
+        const imgUrl = conv.otherUser?.self_image?.[0]?.url || conv.otherUser?.self_image?.url;
 
-      const convMap: Record<string, any> = {};
+        return {
+          matchId: conv.matchDocumentId,
+          otherUserId: conv.otherUser?.id,
+          name: conv.otherUser?.username || "Ami Bondiz",
+          lastMessage: conv.lastMessage?.content || "Nouveau match ! ✨",
+          time: conv.lastMessage
+            ? new Date(conv.lastMessage.sentAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+            : "",
+          avatar: imgUrl
+            ? (imgUrl.startsWith("http") ? imgUrl : `${STRAPI_BASE_URL}${imgUrl}`)
+            : `https://i.pravatar.cc/150?u=${conv.otherUser?.id}`,
+          unread: conv.unreadCount > 0,
+          unreadCount: conv.unreadCount,
+        };
+      });
 
-      // Process Matches first (these are the baseline for conversations)
-      if (matchesRes.data) {
-        matchesRes.data.forEach((match: any) => {
-          const mData = match.attributes || match;
-          const u1 = mData.user1?.data || mData.user1;
-          const u2 = mData.user2?.data || mData.user2;
-          
-          const u1Id = Number(u1?.id);
-          const u2Id = Number(u2?.id);
-          const currentId = Number(user.id);
-
-          const otherUser = (u1Id === currentId) ? u2 : u1;
-          const otherUserData = otherUser?.attributes || otherUser;
-          
-          if (otherUser) {
-            const imgUrl = otherUserData?.self_image?.url || 
-                           otherUserData?.self_image?.[0]?.url || 
-                           otherUserData?.self_image?.data?.attributes?.url ||
-                           otherUserData?.self_image?.data?.[0]?.url;
-
-            convMap[otherUser.id] = {
-              matchId: match.id,
-              otherUserId: otherUser.id,
-              name: otherUserData?.username || "Ami Bondiz",
-              lastMessage: "Nouveau match ! ✨",
-              time: "",
-              avatar: imgUrl ? `${STRAPI_BASE_URL}${imgUrl}` : `https://i.pravatar.cc/150?u=${otherUser.id}`,
-              unread: false,
-              timestamp: new Date(mData.createdAt || Date.now()).getTime()
-            };
-          }
-        });
-      }
-
-      // Process Messages second (to update snapshots)
-      if (messagesRes.data) {
-        messagesRes.data.forEach((msg: any) => {
-          const mData = msg.attributes || msg;
-          const senderId = Number(mData.sender?.data?.id || mData.sender?.id);
-          const recipientId = Number(mData.recipient?.data?.id || mData.recipient?.id);
-          const currentId = Number(user.id);
-          const otherId = (senderId === currentId) ? recipientId : senderId;
-
-          if (otherId && convMap[otherId]) {
-            // Update the existing conversation with latest message info
-            if (convMap[otherId].time === "") {
-               convMap[otherId].lastMessage = mData.content;
-               convMap[otherId].time = new Date(mData.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-               convMap[otherId].unread = !mData.isRead && recipientId === currentId;
-               convMap[otherId].timestamp = new Date(mData.createdAt).getTime();
-            }
-          }
-        });
-      }
-
-      // Sort by latest activity timestamp
-      const sorted = Object.values(convMap).sort((a, b) => b.timestamp - a.timestamp);
-      setConversations(sorted);
+      setConversations(mapped);
 
     } catch (error) {
       console.error("Fetch conversations error:", error);
