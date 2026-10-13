@@ -51,40 +51,20 @@ const ChatScreen = () => {
   const fetchData = async () => {
     if (!user || !token || !id || isRedirecting.current) return;
     try {
-      // 1. Fetch Match Info
-      const matchRes = await apiFetch<any>(
-        `/matches?filters[id][$eq]=${id}&populate[user1][populate]=self_image&populate[user2][populate]=self_image&publicationState=live`,
-        {},
-        token
-      );
+      // 1. La conversation : le backend vérifie que le match nous appartient
+      const convRes = await apiFetch<any>(`/conversations/${id}`, {}, token);
+      setMatchInfo(convRes.data);
+      setOtherUser(convRes.data?.otherUser);
 
-      let other = null;
-      if (matchRes.data && matchRes.data.length > 0) {
-        const matchData = matchRes.data[0];
-        const mData = matchData.attributes || matchData;
-        setMatchInfo(mData);
-
-        const u1 = mData.user1?.data || mData.user1;
-        const u2 = mData.user2?.data || mData.user2;
-
-        const u1Id = Number(u1?.id || u1?.attributes?.id);
-        const currentUserId = Number(user.id);
-
-        other = (u1Id === currentUserId) ? u2 : u1;
-        setOtherUser(other);
+      // 2. L'historique, déjà trié et limité à cette conversation
+      const msgRes = await apiFetch<any>(`/conversations/${id}/messages?pageSize=100`, {}, token);
+      if (msgRes.data) {
+        setMessages(msgRes.data);
       }
 
-      if (other) {
-        // 2. Fetch Message History
-        const msgRes = await apiFetch<any>(
-          `/messages?filters[$or][0][$and][0][sender][id][$eq]=${user.id}&filters[$or][0][$and][1][recipient][id][$eq]=${other.id}&filters[$or][1][$and][0][sender][id][$eq]=${other.id}&filters[$or][1][$and][1][recipient][id][$eq]=${user.id}&populate=*&sort=createdAt:asc&publicationState=live`,
-          {},
-          token
-        );
-
-        if (msgRes.data) {
-          setMessages(msgRes.data);
-        }
+      // 3. Les messages reçus sont marqués comme lus
+      if (msgRes.data?.some((m: any) => !m.isMine && !m.isRead)) {
+        await apiFetch(`/conversations/${id}/read`, { method: "POST" }, token);
       }
     } catch (error: any) {
       console.error("Chat fetch error:", error);
@@ -136,18 +116,17 @@ const ChatScreen = () => {
       const dateStr = bookingDate.toISOString().split("T")[0];
       const timeStr = time.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: false });
 
-      // In Strapi 5 (Document Service), use documentId (string) for relations if possible.
-      // If not available, use the numeric ID.
+      // L'activité accepte le documentId ou l'id numérique ;
+      // les participants doivent être des id numériques.
+      // L'organisateur est déduit du token côté serveur.
       const activityId = selectedActivity.documentId || selectedActivity.id;
-      const organizerId = user?.documentId || user?.id; // user from AuthContext
-      const participantId = otherUser.documentId || otherUser.id || otherUser.attributes?.id;
+      const participantId = otherUser.id;
 
       await apiFetch("/bookings", {
         method: "POST",
         body: JSON.stringify({
           data: {
             activity: activityId,
-            organizer: organizerId,
             participants: [participantId],
             date: dateStr,
             time: timeStr,
@@ -160,14 +139,11 @@ const ChatScreen = () => {
       setSelectedActivity(null);
       setBookingDate(null);
 
-      await apiFetch("/messages", {
+      await apiFetch(`/conversations/${id}/messages`, {
         method: "POST",
         body: JSON.stringify({
           data: {
-            content: `📅 Nouvel événement créé : ${selectedActivity.attributes?.title || selectedActivity.title} le ${dateStr} à ${timeStr} ! ✨`,
-            sender: user?.id,
-            recipient: otherUser.id,
-            sentAt: new Date().toISOString()
+            content: `📅 Nouvel événement créé : ${selectedActivity.attributes?.title || selectedActivity.title} le ${dateStr} à ${timeStr} ! ✨`
           }
         })
       }, token);
@@ -188,18 +164,10 @@ const ChatScreen = () => {
 
     try {
       await apiFetch<any>(
-        "/messages",
+        `/conversations/${id}/messages`,
         {
           method: "POST",
-          body: JSON.stringify({
-            data: {
-              content: tempText,
-              sender: user?.id,
-              recipient: otherUser.id,
-              isRead: false,
-              sentAt: new Date().toISOString()
-            }
-          })
+          body: JSON.stringify({ data: { content: tempText } })
         },
         token
       );
@@ -219,8 +187,8 @@ const ChatScreen = () => {
   };
 
   const renderMessage = ({ item }: { item: any }) => {
-    const mData = item.attributes || item;
-    const isMe = (mData.sender?.data?.id || mData.sender?.id) === user?.id;
+    const mData = item;
+    const isMe = item.isMine;
 
     return (
       <View style={[

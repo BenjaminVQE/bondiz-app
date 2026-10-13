@@ -29,7 +29,7 @@ const { width, height } = Dimensions.get("window");
 
 const HomeScreen = () => {
   const router = useRouter();
-  const { user, logout } = useAuth();
+  const { user, token, logout } = useAuth();
   const insets = useSafeAreaInsets();
   
   const [users, setUsers] = useState<any[]>([]);
@@ -52,22 +52,11 @@ const HomeScreen = () => {
   const fetchUsers = async () => {
     try {
       setLoading(true);
-      const usersData = await apiFetch<any[]>(`/users?populate[0]=self_image`);
-      const filtered = (usersData || []).filter((u: any) => u.id !== user?.id);
-      setUsers(filtered);
-
-      if (user?.id) {
-        const likesRes = await apiFetch<any>(
-          `/likes?filters[fromUser][id]=${user.id}&populate[toUser][fields]=id`
-        );
-        
-        if (likesRes.data) {
-          const likedIds = likesRes.data
-            .map((l: any) => l.toUser?.id)
-            .filter((id: number) => id !== undefined);
-          setSentLikeIds(likedIds);
-        }
-      }
+      // /discover renvoie les profils à découvrir : sans soi-même,
+      // sans les profils déjà likés et sans les comptes bloqués.
+      const res = await apiFetch<any>(`/discover?pageSize=50`, {}, token!);
+      setUsers(res.data || []);
+      setSentLikeIds([]);
     } catch (error) {
       console.error("Failed to fetch users", error);
     } finally {
@@ -116,31 +105,18 @@ const HomeScreen = () => {
     setSentLikeIds(prev => [...prev, targetUserId]);
 
     try {
-      // 1. Créer le Like
-      // Format Strapi : { data: { fromUser: id1, toUser: id2, state: 'liked' } }
-      await apiFetch("/likes", {
+      // L'auteur du like est déduit du token côté serveur,
+      // qui crée aussi le match si le like est réciproque.
+      const likeRes = await apiFetch<any>("/likes", {
         method: "POST",
         body: JSON.stringify({
           data: {
-            fromUser: user.id,
             toUser: targetUserId,
-            state: "accepted"
           }
         })
-      });
+      }, token!);
 
-      // 2. Vérifier si l'autre utilisateur nous a déjà liké (Like réciproque)
-      // On cherche un Like où fromUser = targetUserId et toUser = user.id
-      const reciprocalLikes = await apiFetch<any>(
-        `/likes?filters[fromUser][id]=${targetUserId}&filters[toUser][id]=${user.id}`
-      );
-
-      // Strapi renvoie les listes dans l'objet 'data'
-      const hasReciprocal = reciprocalLikes.data && reciprocalLikes.data.length > 0;
-
-      if (hasReciprocal) {
-        // Match creation is now handled automatically by the backend lifecycle hook!
-        // We just need to show the notification
+      if (likeRes.meta?.matched) {
         const targetUser = users.find(u => u.id === targetUserId);
         
         setMatchInfo({
