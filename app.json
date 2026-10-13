@@ -7,7 +7,6 @@
     "icon": "./assets/images/logo_app.png",
     "scheme": "bondizapp",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.bondiz.bondizapp",
@@ -20,7 +19,6 @@
         "backgroundColor": "#FFFFFF",
         "foregroundImage": "./assets/images/logo_app.png"
       },
-      "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
       "package": "com.bondiz.bondizapp",
       "permissions": [
@@ -29,7 +27,7 @@
     },
     "web": {
       "output": "static",
-      "favicon": "./assets/images/logo_app.png"
+      "favicon": "./public/icons/icon-192.png"
     },
     "plugins": [
       "expo-router",
@@ -52,7 +50,11 @@
         {
           "photosPermission": "L'application accède à vos photos pour vous permettre de les partager avec vos amis."
         }
-      ]
+      ],
+      "expo-font",
+      "expo-web-browser",
+      "expo-image",
+      "expo-status-bar"
     ],
     "experiments": {
       "typedRoutes": true,

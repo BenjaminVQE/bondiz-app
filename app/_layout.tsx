@@ -14,6 +14,7 @@ import { IMAGES } from "@/constants/Image";
 import LoadingSpinner from "./components/loading";
 import { AuthProvider } from "../context/AuthContext";
 import { COLORS } from "@/constants/Colors";
+import { registerServiceWorker } from "@/utils/registerServiceWorker";
 
 SplashScreen.preventAutoHideAsync();
 
@@ -24,6 +25,10 @@ export default function RootLayout() {
     Poppins_500Medium,
     Poppins_700Bold,
   });
+
+  useEffect(() => {
+    registerServiceWorker();
+  }, []);
 
   useEffect(() => {
     if (loaded || error) {

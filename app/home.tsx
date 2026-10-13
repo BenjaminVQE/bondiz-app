@@ -15,12 +15,12 @@ import {
   View,
   ActivityIndicator,
   FlatList,
-  Alert,
   ScrollView
 } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth } from "../context/AuthContext";
 import { apiFetch, STRAPI_BASE_URL } from "../services/api";
+import { showAlert } from "../utils/alert";
 import { calculateAge } from "../utils/date";
 import BottomNav from "./components/BottomNav";
 import MatchNotification from "./components/MatchNotification";
@@ -126,7 +126,7 @@ const HomeScreen = () => {
       } 
     } catch (error) {
       console.error("Erreur lors du Like", error);
-      Alert.alert("Erreur", "Impossible d'envoyer votre Like pour le moment.");
+      showAlert("Erreur", "Impossible d'envoyer votre Like pour le moment.");
     }
   };
 
@@ -359,7 +359,7 @@ const styles = StyleSheet.create({
     resizeMode: "cover",
   },
   placeholderImage: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: COLORS.gray,
   },
   gradient: {
@@ -465,7 +465,7 @@ const styles = StyleSheet.create({
     justifyContent: "flex-end",
   },
   photoContainer: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
   },
   arrowButton: {
     position: "absolute",

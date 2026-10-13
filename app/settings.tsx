@@ -3,9 +3,9 @@ import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React from "react";
 import {
-  Alert,
   Linking,
   Modal,
+  Platform,
   ScrollView,
   StatusBar,
   StyleSheet,
@@ -17,6 +17,16 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useAuth } from "../context/AuthContext";
 import { apiFetch } from "../services/api";
+import { showAlert } from "../utils/alert";
+import { disablePush, enablePush, getPushStatus, PushStatus } from "../utils/push";
+
+const PUSH_LABELS: Record<PushStatus, string> = {
+  enabled: "Activées",
+  disabled: "Désactivées",
+  denied: "Bloquées",
+  "needs-install": "Indisponibles",
+  unsupported: "Indisponibles",
+};
 
 export default function SettingsScreen() {
   const router = useRouter();
@@ -29,6 +39,15 @@ export default function SettingsScreen() {
   const [showCurrentPassword, setShowCurrentPassword] = React.useState(false);
   const [showNewPassword, setShowNewPassword] = React.useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = React.useState(false);
+  const [pushStatus, setPushStatus] = React.useState<PushStatus | null>(null);
+  const [pushBusy, setPushBusy] = React.useState(false);
+
+  React.useEffect(() => {
+    if (Platform.OS !== "web") return;
+    getPushStatus()
+      .then(setPushStatus)
+      .catch(() => setPushStatus("unsupported"));
+  }, []);
 
   const handleLogout = async () => {
     try {
@@ -41,12 +60,12 @@ export default function SettingsScreen() {
 
   const handlePasswordChange = async () => {
     if (!currentPassword || !newPassword || !confirmPassword) {
-      Alert.alert("Erreur", "Veuillez remplir tous les champs.");
+      showAlert("Erreur", "Veuillez remplir tous les champs.");
       return;
     }
 
     if (newPassword !== confirmPassword) {
-      Alert.alert("Erreur", "Le nouveau mot de passe et sa confirmation ne correspondent pas.");
+      showAlert("Erreur", "Le nouveau mot de passe et sa confirmation ne correspondent pas.");
       return;
     }
 
@@ -61,20 +80,55 @@ export default function SettingsScreen() {
         }),
       }, token || undefined);
       
-      Alert.alert("Succès", "Votre mot de passe a été modifié avec succès.");
+      showAlert("Succès", "Votre mot de passe a été modifié avec succès.");
       setIsPasswordModalVisible(false);
       setCurrentPassword("");
       setNewPassword("");
       setConfirmPassword("");
     } catch (error: any) {
-      Alert.alert("Erreur", error.message || "Une erreur est survenue lors de la modification du mot de passe.");
+      showAlert("Erreur", error.message || "Une erreur est survenue lors de la modification du mot de passe.");
     } finally {
       setLoading(false);
     }
   };
 
-  const openNotificationSettings = () => {
-    Linking.openSettings();
+  const openNotificationSettings = async () => {
+    if (Platform.OS !== "web") {
+      Linking.openSettings();
+      return;
+    }
+    if (!token || !pushStatus || pushBusy) return;
+
+    if (pushStatus === "needs-install") {
+      showAlert(
+        "Notifications",
+        "Ajoutez Bondiz à votre écran d'accueil (bouton Partager, puis « Sur l'écran d'accueil ») pour activer les notifications."
+      );
+      return;
+    }
+    if (pushStatus === "unsupported") {
+      showAlert("Notifications", "Les notifications ne sont pas disponibles sur ce navigateur.");
+      return;
+    }
+    if (pushStatus === "denied") {
+      showAlert("Notifications", "Les notifications sont bloquées. Autorisez-les dans les réglages de votre navigateur.");
+      return;
+    }
+
+    setPushBusy(true);
+    try {
+      if (pushStatus === "enabled") {
+        await disablePush(token);
+        setPushStatus("disabled");
+      } else {
+        setPushStatus(await enablePush(token));
+      }
+    } catch (error: any) {
+      showAlert("Erreur", error.message || "Impossible de modifier les notifications.");
+      setPushStatus(await getPushStatus().catch(() => "unsupported" as const));
+    } finally {
+      setPushBusy(false);
+    }
   };
 
   return (
@@ -138,7 +192,11 @@ export default function SettingsScreen() {
             onPress={openNotificationSettings}
           >
             <Text style={styles.cardItemText}>Notifications</Text>
-            <Ionicons name="chevron-forward" size={20} color={COLORS.gray} />
+            {pushStatus ? (
+              <Text style={styles.cardItemValue}>{pushBusy ? "…" : PUSH_LABELS[pushStatus]}</Text>
+            ) : (
+              <Ionicons name="chevron-forward" size={20} color={COLORS.gray} />
+            )}
           </TouchableOpacity>
         </View>
 
@@ -342,6 +400,11 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontFamily: "Poppins_500Medium",
     color: COLORS.black,
+  },
+  cardItemValue: {
+    fontSize: 14,
+    fontFamily: "Poppins_500Medium",
+    color: COLORS.purple,
   },
   logoutContainer: {
     marginTop: 20,

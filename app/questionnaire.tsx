@@ -12,10 +12,10 @@ import {
   Text,
   TouchableOpacity,
   View,
-  Alert,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import DateTimePickerModal from "react-native-modal-datetime-picker";
+import DateTimePickerModal from "@/components/DatePickerModal";
+import { showAlert } from "@/utils/alert";
 import * as ImagePicker from "expo-image-picker";
 import { useAuth } from "../context/AuthContext";
 import Input from "./components/Input";
@@ -114,7 +114,7 @@ export default function QuestionnaireScreen() {
   const pickImage = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
-      Alert.alert('Permission requise', 'Nous avons besoin d\'accéder à vos photos pour ajouter une photo de profil.');
+      showAlert('Permission requise', 'Nous avons besoin d\'accéder à vos photos pour ajouter une photo de profil.');
       return;
     }
 

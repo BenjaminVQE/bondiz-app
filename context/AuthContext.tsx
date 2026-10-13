@@ -1,5 +1,7 @@
 import { apiFetch } from "@/services/api";
-import * as SecureStore from "expo-secure-store";
+import { disablePush } from "@/utils/push";
+import * as storage from "@/utils/storage";
+import { appendImage } from "@/utils/upload";
 import React, { createContext, useContext, useEffect, useState } from "react";
 
 const TOKEN_KEY = "auth_token";
@@ -44,8 +46,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   async function loadStorageData() {
     try {
-      const storedToken = await SecureStore.getItemAsync(TOKEN_KEY);
-      const storedUser = await SecureStore.getItemAsync(USER_KEY);
+      const storedToken = await storage.getItem(TOKEN_KEY);
+      const storedUser = await storage.getItem(USER_KEY);
 
       if (storedToken && storedUser) {
         setToken(storedToken);
@@ -82,15 +84,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (imageUri) {
       try {
         const formData = new FormData();
-        const filename = imageUri.split('/').pop() || 'profile.jpg';
-        const match = /\.(\w+)$/.exec(filename);
-        const type = match ? `image/${match[1]}` : `image`;
-
-        formData.append("files", {
-          uri: imageUri,
-          name: filename,
-          type,
-        } as any);
+        await appendImage(formData, "files", imageUri, "profile");
         formData.append("ref", "plugin::users-permissions.user");
         formData.append("refId", currentUser.id.toString());
         formData.append("field", "self_image");
@@ -138,15 +132,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }
 
   async function logout() {
-    await SecureStore.deleteItemAsync(TOKEN_KEY);
-    await SecureStore.deleteItemAsync(USER_KEY);
+    // Sinon cet appareil continuerait à recevoir les notifications du compte.
+    if (token) {
+      await disablePush(token).catch((error) => console.error("Failed to disable push", error));
+    }
+    await storage.deleteItem(TOKEN_KEY);
+    await storage.deleteItem(USER_KEY);
     setToken(null);
     setUser(null);
   }
 
   async function saveAuthData(jwt: string, userData: User) {
-    await SecureStore.setItemAsync(TOKEN_KEY, jwt);
-    await SecureStore.setItemAsync(USER_KEY, JSON.stringify(userData));
+    await storage.setItem(TOKEN_KEY, jwt);
+    await storage.setItem(USER_KEY, JSON.stringify(userData));
     setToken(jwt);
     setUser(userData);
   }

@@ -19,7 +19,7 @@ import {
   TouchableOpacity,
   View
 } from "react-native";
-import DateTimePickerModal from "react-native-modal-datetime-picker";
+import DateTimePickerModal from "@/components/DatePickerModal";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import BottomNav from "../components/BottomNav";
 

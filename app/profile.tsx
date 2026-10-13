@@ -36,6 +36,7 @@ import {
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth } from "../context/AuthContext";
 import { apiFetch, STRAPI_BASE_URL } from "../services/api";
+import { appendImage } from "../utils/upload";
 import BottomNav from "./components/BottomNav";
 
 const { width, height } = Dimensions.get("window");
@@ -96,12 +97,7 @@ export default function ProfileScreen() {
     try {
       setLoading(true);
       const formData = new FormData();
-      const fileName = uri.split("/").pop() || "profile_photo.jpg";
-      const match = /\.(\w+)$/.exec(fileName);
-      const type = match ? `image/${match[1]}` : `image`;
-
-      // @ts-ignore
-      formData.append("files", { uri, name: fileName, type });
+      await appendImage(formData, "files", uri, "profile_photo");
 
       const uploadResponse = await apiFetch<any[]>("/upload", {
         method: "POST",
